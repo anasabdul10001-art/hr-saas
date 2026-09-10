@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { LogOut, DollarSign, TrendingUp, Users, AlertTriangle } from "lucide-react";
 import { api } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
+import { Logo } from "../components/Logo";
 import type { AdminCompanyListItem, Plan, RevenueOverview } from "../lib/types";
 
 function money(minorUnits: number) {
@@ -11,11 +13,11 @@ function formatDate(iso: string) {
 }
 
 const statusStyles: Record<string, string> = {
-  TRIALING: "bg-blue-100 text-blue-800",
-  ACTIVE: "bg-green-100 text-green-800",
-  PAST_DUE: "bg-amber-100 text-amber-800",
-  CANCELED: "bg-red-100 text-red-800",
-  EXPIRED: "bg-red-100 text-red-800",
+  TRIALING: "bg-blue-50 text-blue-700",
+  ACTIVE: "bg-emerald-50 text-emerald-700",
+  PAST_DUE: "bg-amber-50 text-amber-700",
+  CANCELED: "bg-rose-50 text-rose-700",
+  EXPIRED: "bg-rose-50 text-rose-700",
 };
 
 export function SuperAdminDashboardPage() {
@@ -54,38 +56,67 @@ export function SuperAdminDashboardPage() {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="mx-auto max-w-5xl space-y-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-semibold text-gray-900">Super Admin — {user?.email}</h1>
-          <button onClick={() => logout()} className="text-sm text-gray-600 underline">
-            Log out
-          </button>
+    <div className="min-h-screen bg-slate-50">
+      <header className="border-b border-slate-800 bg-slate-900">
+        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
+          <div className="flex items-center gap-3">
+            <Logo compact />
+            <span className="rounded-full bg-white/10 px-2.5 py-1 text-xs font-medium text-white">Super Admin</span>
+          </div>
+          <div className="flex items-center gap-4">
+            <span className="text-xs text-slate-400">{user?.email}</span>
+            <button onClick={() => logout()} className="flex items-center gap-1.5 text-sm text-slate-300 hover:text-white">
+              <LogOut size={15} />
+              Log out
+            </button>
+          </div>
         </div>
+      </header>
 
+      <main className="mx-auto max-w-5xl space-y-4 p-6">
         {revenue.isSuccess && (
-          <div className="grid grid-cols-4 gap-3">
-            <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-              <p className="text-xs text-gray-500">MRR</p>
-              <p className="text-lg font-semibold text-gray-900">${money(revenue.data.mrr)}</p>
+          <div className="grid grid-cols-4 gap-4">
+            <div className="card flex items-center gap-3 p-4">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
+                <DollarSign size={18} />
+              </div>
+              <div>
+                <p className="text-xs text-slate-500">MRR</p>
+                <p className="text-lg font-semibold text-slate-900">${money(revenue.data.mrr)}</p>
+              </div>
             </div>
-            <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-              <p className="text-xs text-gray-500">ARR</p>
-              <p className="text-lg font-semibold text-gray-900">${money(revenue.data.arr)}</p>
+            <div className="card flex items-center gap-3 p-4">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
+                <TrendingUp size={18} />
+              </div>
+              <div>
+                <p className="text-xs text-slate-500">ARR</p>
+                <p className="text-lg font-semibold text-slate-900">${money(revenue.data.arr)}</p>
+              </div>
             </div>
-            <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-              <p className="text-xs text-gray-500">Active subscriptions</p>
-              <p className="text-lg font-semibold text-gray-900">{revenue.data.countsByStatus.ACTIVE ?? 0}</p>
+            <div className="card flex items-center gap-3 p-4">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
+                <Users size={18} />
+              </div>
+              <div>
+                <p className="text-xs text-slate-500">Active subscriptions</p>
+                <p className="text-lg font-semibold text-slate-900">{revenue.data.countsByStatus.ACTIVE ?? 0}</p>
+              </div>
             </div>
-            <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-              <p className="text-xs text-gray-500">Past due</p>
-              <p className="text-lg font-semibold text-gray-900">{revenue.data.countsByStatus.PAST_DUE ?? 0}</p>
+            <div className="card flex items-center gap-3 p-4">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
+                <AlertTriangle size={18} />
+              </div>
+              <div>
+                <p className="text-xs text-slate-500">Past due</p>
+                <p className="text-lg font-semibold text-slate-900">{revenue.data.countsByStatus.PAST_DUE ?? 0}</p>
+              </div>
             </div>
           </div>
         )}
 
         {revenue.data && revenue.data.pastDueAccounts.length > 0 && (
-          <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
             <p className="font-medium">Accounts needing attention:</p>
             {revenue.data.pastDueAccounts.map((a) => (
               <p key={a.companyId}>
@@ -95,27 +126,27 @@ export function SuperAdminDashboardPage() {
           </div>
         )}
 
-        <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
-          <h2 className="border-b border-gray-100 p-4 text-sm font-medium text-gray-900">Subscribers</h2>
-          <div className="divide-y divide-gray-100">
+        <div className="card">
+          <h2 className="border-b border-slate-100 p-4 text-sm font-semibold text-slate-900">Subscribers</h2>
+          <div className="divide-y divide-slate-100">
             {companies.data?.map((c) => (
               <div key={c.id} className="flex items-center justify-between gap-3 p-4 text-sm">
                 <div>
-                  <p className="font-medium text-gray-900">
-                    {c.name} {c.isSuspended && <span className="text-xs text-red-600">(suspended)</span>}
+                  <p className="font-medium text-slate-900">
+                    {c.name} {c.isSuspended && <span className="text-xs text-rose-600">(suspended)</span>}
                   </p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-slate-500">
                     {c.employeeCount} employee(s) · joined {formatDate(c.createdAt)}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
                   {c.subscription && (
-                    <span className={`rounded-full px-2 py-1 text-xs ${statusStyles[c.subscription.status]}`}>
+                    <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusStyles[c.subscription.status]}`}>
                       {c.subscription.plan} · {c.subscription.status}
                     </span>
                   )}
                   <select
-                    className="rounded border border-gray-300 px-2 py-1 text-xs"
+                    className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs"
                     value=""
                     onChange={(e) => {
                       if (e.target.value) changePlan.mutate({ companyId: c.id, planId: e.target.value });
@@ -130,7 +161,7 @@ export function SuperAdminDashboardPage() {
                   </select>
                   <button
                     onClick={() => toggleSuspend.mutate({ companyId: c.id, isSuspended: !c.isSuspended })}
-                    className={`rounded px-2 py-1 text-xs text-white ${c.isSuspended ? "bg-green-600" : "bg-red-600"}`}
+                    className={`rounded-lg px-2.5 py-1.5 text-xs font-medium text-white ${c.isSuspended ? "bg-emerald-600 hover:bg-emerald-700" : "bg-rose-600 hover:bg-rose-700"}`}
                   >
                     {c.isSuspended ? "Reactivate" : "Suspend"}
                   </button>
@@ -139,7 +170,7 @@ export function SuperAdminDashboardPage() {
             ))}
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

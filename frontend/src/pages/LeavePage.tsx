@@ -1,8 +1,9 @@
 import { type FormEvent, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { Check, X } from "lucide-react";
 import { api } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
+import { AppShell } from "../components/AppShell";
 import type { LeaveBalanceEntry, LeaveRequest, LeaveType } from "../lib/types";
 
 function formatDate(iso: string) {
@@ -10,11 +11,11 @@ function formatDate(iso: string) {
 }
 
 const statusStyles: Record<string, string> = {
-  PENDING_MANAGER: "bg-amber-100 text-amber-800",
-  PENDING_HR: "bg-amber-100 text-amber-800",
-  APPROVED: "bg-green-100 text-green-800",
-  REJECTED: "bg-red-100 text-red-800",
-  CANCELED: "bg-gray-100 text-gray-600",
+  PENDING_MANAGER: "bg-amber-50 text-amber-700",
+  PENDING_HR: "bg-amber-50 text-amber-700",
+  APPROVED: "bg-emerald-50 text-emerald-700",
+  REJECTED: "bg-rose-50 text-rose-700",
+  CANCELED: "bg-slate-100 text-slate-500",
 };
 
 export function LeavePage() {
@@ -112,30 +113,23 @@ export function LeavePage() {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="mx-auto max-w-3xl space-y-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-semibold text-gray-900">Leave</h1>
-          <Link to="/dashboard" className="text-sm text-gray-600 underline">
-            Back to dashboard
-          </Link>
-        </div>
-
+    <AppShell title="Leave">
+      <div className="space-y-4">
         {myBalances.isSuccess && (
-          <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-            <h2 className="text-sm font-medium text-gray-900">My balances</h2>
+          <div className="card p-5">
+            <h2 className="text-sm font-semibold text-slate-900">My balances</h2>
             <div className="mt-2 flex gap-4">
               {myBalances.data.map((b) => (
                 <div key={b.leaveType.id} className="text-sm">
-                  <span className="text-gray-500">{b.leaveType.name}: </span>
-                  <span className="font-medium text-gray-900">{b.balanceDays} day(s)</span>
+                  <span className="text-slate-500">{b.leaveType.name}: </span>
+                  <span className="font-medium text-slate-900">{b.balanceDays} day(s)</span>
                 </div>
               ))}
             </div>
 
-            <form onSubmit={handleRequestSubmit} className="mt-4 grid grid-cols-2 gap-3 border-t border-gray-100 pt-4">
+            <form onSubmit={handleRequestSubmit} className="mt-4 grid grid-cols-2 gap-3 border-t border-slate-100 pt-4">
               <select
-                className="col-span-2 rounded border border-gray-300 px-3 py-2 text-sm"
+                className="input-field col-span-2"
                 value={form.leaveTypeId}
                 onChange={(e) => setForm({ ...form, leaveTypeId: e.target.value })}
                 required
@@ -147,54 +141,50 @@ export function LeavePage() {
                   </option>
                 ))}
               </select>
-              <label className="text-xs text-gray-600">
+              <label className="text-xs text-slate-600">
                 Start date
                 <input
                   type="date"
-                  className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm"
+                  className="input-field mt-1"
                   value={form.startDate}
                   onChange={(e) => setForm({ ...form, startDate: e.target.value })}
                   required
                 />
               </label>
-              <label className="text-xs text-gray-600">
+              <label className="text-xs text-slate-600">
                 End date
                 <input
                   type="date"
-                  className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm"
+                  className="input-field mt-1"
                   value={form.endDate}
                   onChange={(e) => setForm({ ...form, endDate: e.target.value })}
                   required
                 />
               </label>
               <input
-                className="col-span-2 rounded border border-gray-300 px-3 py-2 text-sm"
+                className="input-field col-span-2"
                 placeholder="Reason (optional)"
                 value={form.reason}
                 onChange={(e) => setForm({ ...form, reason: e.target.value })}
               />
-              {requestError && <p className="col-span-2 text-sm text-red-600">{requestError}</p>}
-              <button
-                type="submit"
-                disabled={createRequest.isPending}
-                className="col-span-2 rounded bg-gray-900 py-2 text-sm font-medium text-white disabled:opacity-50"
-              >
+              {requestError && <p className="col-span-2 text-sm text-rose-600">{requestError}</p>}
+              <button type="submit" disabled={createRequest.isPending} className="btn-primary col-span-2">
                 {createRequest.isPending ? "Submitting…" : "Request leave"}
               </button>
             </form>
 
-            <div className="mt-4 divide-y divide-gray-100 border-t border-gray-100 pt-2">
-              {myRequests.data?.length === 0 && <p className="py-2 text-sm text-gray-500">No leave requests yet.</p>}
+            <div className="mt-4 divide-y divide-slate-100 border-t border-slate-100 pt-2">
+              {myRequests.data?.length === 0 && <p className="py-2 text-sm text-slate-500">No leave requests yet.</p>}
               {myRequests.data?.map((r) => (
                 <div key={r.id} className="flex items-center justify-between py-2 text-sm">
-                  <span className="text-gray-900">
+                  <span className="text-slate-900">
                     {r.leaveType.name}: {formatDate(r.startDate)} → {formatDate(r.endDate)}
-                    {r.rejectionReason && <span className="ml-2 text-xs text-red-600">({r.rejectionReason})</span>}
+                    {r.rejectionReason && <span className="ml-2 text-xs text-rose-600">({r.rejectionReason})</span>}
                   </span>
                   <div className="flex items-center gap-2">
-                    <span className={`rounded-full px-2 py-1 text-xs ${statusStyles[r.status]}`}>{r.status}</span>
+                    <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusStyles[r.status]}`}>{r.status}</span>
                     {(r.status === "PENDING_MANAGER" || r.status === "PENDING_HR") && (
-                      <button onClick={() => cancelRequest.mutate(r.id)} className="text-xs text-gray-500 underline">
+                      <button onClick={() => cancelRequest.mutate(r.id)} className="text-xs text-slate-500 underline hover:text-slate-700">
                         Cancel
                       </button>
                     )}
@@ -211,57 +201,54 @@ export function LeavePage() {
               e.preventDefault();
               createLeaveType.mutate();
             }}
-            className="flex items-end gap-2 rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
+            className="card flex items-end gap-2 p-4"
           >
-            <label className="text-xs text-gray-600">
+            <label className="text-xs text-slate-600">
               New leave type
               <input
-                className="mt-1 rounded border border-gray-300 px-3 py-2 text-sm"
+                className="input-field mt-1"
                 placeholder="Name"
                 value={typeForm.name}
                 onChange={(e) => setTypeForm({ ...typeForm, name: e.target.value })}
                 required
               />
             </label>
-            <label className="text-xs text-gray-600">
+            <label className="text-xs text-slate-600">
               Days/year
               <input
                 type="number"
-                className="mt-1 w-24 rounded border border-gray-300 px-3 py-2 text-sm"
+                className="input-field mt-1 w-24"
                 value={typeForm.defaultBalance}
                 onChange={(e) => setTypeForm({ ...typeForm, defaultBalance: e.target.value })}
                 required
               />
             </label>
-            <button
-              type="submit"
-              disabled={createLeaveType.isPending}
-              className="rounded bg-gray-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-            >
+            <button type="submit" disabled={createLeaveType.isPending} className="btn-primary">
               Add type
             </button>
           </form>
         )}
 
         {canApprove && (
-          <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
-            <h2 className="border-b border-gray-100 p-4 text-sm font-medium text-gray-900">Approvals</h2>
-            <div className="divide-y divide-gray-100">
-              {teamRequests.data?.length === 0 && <p className="p-4 text-sm text-gray-500">No requests.</p>}
+          <div className="card">
+            <h2 className="border-b border-slate-100 p-4 text-sm font-semibold text-slate-900">Approvals</h2>
+            <div className="divide-y divide-slate-100">
+              {teamRequests.data?.length === 0 && <p className="p-4 text-sm text-slate-500">No requests.</p>}
               {teamRequests.data?.map((r) => (
                 <div key={r.id} className="flex items-center justify-between p-4 text-sm">
-                  <span className="text-gray-900">
+                  <span className="text-slate-900">
                     {r.employee?.firstName} {r.employee?.lastName} — {r.leaveType.name}: {formatDate(r.startDate)} →{" "}
                     {formatDate(r.endDate)}
                   </span>
                   <div className="flex items-center gap-2">
-                    <span className={`rounded-full px-2 py-1 text-xs ${statusStyles[r.status]}`}>{r.status}</span>
+                    <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusStyles[r.status]}`}>{r.status}</span>
                     {canDecideOn(r.status) && (
                       <>
                         <button
                           onClick={() => decide.mutate({ id: r.id, decision: "APPROVE" })}
-                          className="rounded bg-green-600 px-2 py-1 text-xs text-white"
+                          className="flex items-center gap-1 rounded-lg bg-emerald-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-emerald-700"
                         >
+                          <Check size={14} />
                           Approve
                         </button>
                         <button
@@ -269,8 +256,9 @@ export function LeavePage() {
                             const reason = window.prompt("Rejection reason (optional)") ?? undefined;
                             decide.mutate({ id: r.id, decision: "REJECT", reason });
                           }}
-                          className="rounded bg-red-600 px-2 py-1 text-xs text-white"
+                          className="flex items-center gap-1 rounded-lg bg-rose-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-rose-700"
                         >
+                          <X size={14} />
                           Reject
                         </button>
                       </>
@@ -282,6 +270,6 @@ export function LeavePage() {
           </div>
         )}
       </div>
-    </div>
+    </AppShell>
   );
 }

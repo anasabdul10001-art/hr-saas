@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Bell } from "lucide-react";
 import { api } from "../lib/api";
 import type { AppNotification } from "../lib/types";
 
@@ -40,40 +41,49 @@ export function NotificationBell() {
 
   return (
     <div className="relative">
-      <button onClick={() => setOpen(!open)} className="relative text-sm text-gray-600 underline">
-        Notifications
+      <button
+        onClick={() => setOpen(!open)}
+        className="relative flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700"
+        aria-label="Notifications"
+      >
+        <Bell size={18} strokeWidth={2} />
         {unreadCount > 0 && (
-          <span className="absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-[10px] text-white">
+          <span className="absolute right-1.5 top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-medium text-white">
             {unreadCount}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="absolute right-0 z-10 mt-2 w-80 rounded-lg border border-gray-200 bg-white shadow-lg">
-          <div className="flex items-center justify-between border-b border-gray-100 p-3">
-            <span className="text-xs font-medium text-gray-900">Notifications</span>
-            {unreadCount > 0 && (
-              <button onClick={() => markAllRead.mutate()} className="text-xs text-gray-500 underline">
-                Mark all read
-              </button>
-            )}
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 z-20 mt-2 w-80 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
+            <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+              <span className="text-sm font-semibold text-slate-900">Notifications</span>
+              {unreadCount > 0 && (
+                <button onClick={() => markAllRead.mutate()} className="text-xs font-medium text-brand-600 hover:text-brand-700">
+                  Mark all read
+                </button>
+              )}
+            </div>
+            <div className="max-h-80 divide-y divide-slate-100 overflow-y-auto">
+              {notifications.data?.notifications.length === 0 && (
+                <p className="p-4 text-center text-xs text-slate-500">No notifications yet.</p>
+              )}
+              {notifications.data?.notifications.map((n) => (
+                <div
+                  key={n.id}
+                  onClick={() => !n.readAt && markRead.mutate(n.id)}
+                  className={`cursor-pointer px-4 py-3 text-xs transition-colors hover:bg-slate-50 ${n.readAt ? "bg-white" : "bg-brand-50/60"}`}
+                >
+                  <p className="font-medium text-slate-900">{n.title}</p>
+                  {n.body && <p className="mt-0.5 text-slate-500">{n.body}</p>}
+                  <p className="mt-1 text-slate-400">{timeAgo(n.createdAt)}</p>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="max-h-80 divide-y divide-gray-100 overflow-y-auto">
-            {notifications.data?.notifications.length === 0 && <p className="p-3 text-xs text-gray-500">No notifications.</p>}
-            {notifications.data?.notifications.map((n) => (
-              <div
-                key={n.id}
-                onClick={() => !n.readAt && markRead.mutate(n.id)}
-                className={`cursor-pointer p-3 text-xs ${n.readAt ? "bg-white" : "bg-blue-50"}`}
-              >
-                <p className="font-medium text-gray-900">{n.title}</p>
-                {n.body && <p className="text-gray-500">{n.body}</p>}
-                <p className="mt-1 text-gray-400">{timeAgo(n.createdAt)}</p>
-              </div>
-            ))}
-          </div>
-        </div>
+        </>
       )}
     </div>
   );

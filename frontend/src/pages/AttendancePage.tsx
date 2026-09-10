@@ -1,8 +1,9 @@
 import { type FormEvent, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { Download, LogIn, LogOut } from "lucide-react";
 import { api, downloadFile } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
+import { AppShell } from "../components/AppShell";
 import type { AttendanceRecord, Employee } from "../lib/types";
 
 function formatDateTime(iso: string | null) {
@@ -80,51 +81,38 @@ export function AttendancePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="mx-auto max-w-3xl space-y-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-semibold text-gray-900">Attendance</h1>
-          <Link to="/dashboard" className="text-sm text-gray-600 underline">
-            Back to dashboard
-          </Link>
-        </div>
-
+    <AppShell title="Attendance">
+      <div className="space-y-4">
         {myEmployee.isSuccess && (
-          <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+          <div className="card p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-900">
+                <p className="text-sm font-medium text-slate-900">
                   {openRecord ? `Checked in at ${formatDateTime(openRecord.checkIn)}` : "Not checked in"}
                 </p>
-                <p className="text-xs text-gray-500">Self check-in/out for your own attendance</p>
+                <p className="text-xs text-slate-500">Self check-in/out for your own attendance</p>
               </div>
               {openRecord ? (
-                <button
-                  onClick={() => checkOut.mutate()}
-                  disabled={checkOut.isPending}
-                  className="rounded bg-gray-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-                >
+                <button onClick={() => checkOut.mutate()} disabled={checkOut.isPending} className="btn-primary bg-rose-600 hover:bg-rose-700">
+                  <LogOut size={16} />
                   Check out
                 </button>
               ) : (
-                <button
-                  onClick={() => checkIn.mutate()}
-                  disabled={checkIn.isPending}
-                  className="rounded bg-gray-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-                >
+                <button onClick={() => checkIn.mutate()} disabled={checkIn.isPending} className="btn-primary">
+                  <LogIn size={16} />
                   Check in
                 </button>
               )}
             </div>
 
-            <div className="mt-4 divide-y divide-gray-100 border-t border-gray-100 pt-2">
-              {myAttendance.data?.length === 0 && <p className="py-2 text-sm text-gray-500">No attendance records yet.</p>}
+            <div className="mt-4 divide-y divide-slate-100 border-t border-slate-100 pt-2">
+              {myAttendance.data?.length === 0 && <p className="py-2 text-sm text-slate-500">No attendance records yet.</p>}
               {myAttendance.data?.slice(0, 10).map((r) => (
                 <div key={r.id} className="flex justify-between py-2 text-sm">
-                  <span className="text-gray-900">
+                  <span className="text-slate-900">
                     {formatDateTime(r.checkIn)} → {formatDateTime(r.checkOut)}
                   </span>
-                  <span className="text-xs text-gray-500">{r.source}</span>
+                  <span className="text-xs text-slate-500">{r.source}</span>
                 </div>
               ))}
             </div>
@@ -132,10 +120,10 @@ export function AttendancePage() {
         )}
 
         {canManage && (
-          <form onSubmit={handleManualSubmit} className="grid grid-cols-2 gap-3 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-            <h2 className="col-span-2 text-sm font-medium text-gray-900">Add manual record</h2>
+          <form onSubmit={handleManualSubmit} className="card grid grid-cols-2 gap-3 p-5">
+            <h2 className="col-span-2 text-sm font-semibold text-slate-900">Add manual record</h2>
             <select
-              className="col-span-2 rounded border border-gray-300 px-3 py-2 text-sm"
+              className="input-field col-span-2"
               value={manualForm.employeeId}
               onChange={(e) => setManualForm({ ...manualForm, employeeId: e.target.value })}
               required
@@ -147,67 +135,64 @@ export function AttendancePage() {
                 </option>
               ))}
             </select>
-            <label className="text-xs text-gray-600">
+            <label className="text-xs text-slate-600">
               Check-in
               <input
                 type="datetime-local"
-                className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm"
+                className="input-field mt-1"
                 value={manualForm.checkIn}
                 onChange={(e) => setManualForm({ ...manualForm, checkIn: e.target.value })}
                 required
               />
             </label>
-            <label className="text-xs text-gray-600">
+            <label className="text-xs text-slate-600">
               Check-out (optional)
               <input
                 type="datetime-local"
-                className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm"
+                className="input-field mt-1"
                 value={manualForm.checkOut}
                 onChange={(e) => setManualForm({ ...manualForm, checkOut: e.target.value })}
               />
             </label>
             <input
-              className="col-span-2 rounded border border-gray-300 px-3 py-2 text-sm"
+              className="input-field col-span-2"
               placeholder="Notes (e.g. reason for manual entry)"
               value={manualForm.notes}
               onChange={(e) => setManualForm({ ...manualForm, notes: e.target.value })}
             />
-            {manualError && <p className="col-span-2 text-sm text-red-600">{manualError}</p>}
-            <button
-              type="submit"
-              disabled={createManual.isPending}
-              className="col-span-2 rounded bg-gray-900 py-2 text-sm font-medium text-white disabled:opacity-50"
-            >
+            {manualError && <p className="col-span-2 text-sm text-rose-600">{manualError}</p>}
+            <button type="submit" disabled={createManual.isPending} className="btn-primary col-span-2">
               {createManual.isPending ? "Saving…" : "Add record"}
             </button>
           </form>
         )}
 
         {canViewTeam && (
-          <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
-            <div className="flex items-center justify-between border-b border-gray-100 p-4">
-              <h2 className="text-sm font-medium text-gray-900">Team attendance</h2>
+          <div className="card">
+            <div className="flex items-center justify-between border-b border-slate-100 p-4">
+              <h2 className="text-sm font-semibold text-slate-900">Team attendance</h2>
               <button
                 onClick={() => downloadFile("/reports/attendance.csv", "attendance.csv")}
-                className="text-xs text-gray-600 underline"
+                className="flex items-center gap-1 text-xs font-medium text-brand-600 hover:text-brand-700"
               >
+                <Download size={14} />
                 Download CSV
               </button>
             </div>
-            <div className="divide-y divide-gray-100">
-              {teamAttendance.data?.length === 0 && <p className="p-4 text-sm text-gray-500">No records yet.</p>}
+            <div className="divide-y divide-slate-100">
+              {teamAttendance.data?.length === 0 && <p className="p-4 text-sm text-slate-500">No records yet.</p>}
               {teamAttendance.data?.map((r) => (
                 <div key={r.id} className="flex justify-between p-4 text-sm">
-                  <span className="text-gray-900">
+                  <span className="text-slate-900">
                     {r.employee?.firstName} {r.employee?.lastName} — {formatDateTime(r.checkIn)} → {formatDateTime(r.checkOut)}
                   </span>
-                  <span className="text-xs text-gray-500">{r.source}</span>
+                  <span className="text-xs text-slate-500">{r.source}</span>
                 </div>
               ))}
             </div>
           </div>
         )}
       </div>
-    </div>
+    </AppShell>
   );
 }

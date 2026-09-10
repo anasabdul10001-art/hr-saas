@@ -1,9 +1,25 @@
 import { type FormEvent, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { UserPlus } from "lucide-react";
 import { api } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
+import { AppShell } from "../components/AppShell";
 import type { Department, Employee } from "../lib/types";
+
+const statusStyles: Record<string, string> = {
+  ACTIVE: "bg-emerald-50 text-emerald-700",
+  ON_LEAVE: "bg-amber-50 text-amber-700",
+  TERMINATED: "bg-slate-100 text-slate-500",
+};
+
+function Avatar({ firstName, lastName }: { firstName: string; lastName: string }) {
+  const initials = `${firstName[0] ?? ""}${lastName[0] ?? ""}`.toUpperCase();
+  return (
+    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-100 text-xs font-semibold text-brand-700">
+      {initials}
+    </div>
+  );
+}
 
 export function EmployeesPage() {
   const { user } = useAuth();
@@ -65,41 +81,25 @@ export function EmployeesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="mx-auto max-w-3xl space-y-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-semibold text-gray-900">Employees</h1>
-          <div className="flex gap-4 text-sm">
-            <Link to="/departments" className="text-gray-600 underline">
-              Departments
-            </Link>
-            <Link to="/dashboard" className="text-gray-600 underline">
-              Back to dashboard
-            </Link>
-          </div>
-        </div>
-
+    <AppShell title="Employees">
+      <div className="space-y-4">
         {canManage && (
-          <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-3 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+          <form onSubmit={handleSubmit} className="card grid grid-cols-2 gap-3 p-5">
             <input
-              className="rounded border border-gray-300 px-3 py-2 text-sm"
+              className="input-field"
               placeholder="First name"
               value={form.firstName}
               onChange={(e) => setForm({ ...form, firstName: e.target.value })}
               required
             />
             <input
-              className="rounded border border-gray-300 px-3 py-2 text-sm"
+              className="input-field"
               placeholder="Last name"
               value={form.lastName}
               onChange={(e) => setForm({ ...form, lastName: e.target.value })}
               required
             />
-            <select
-              className="rounded border border-gray-300 px-3 py-2 text-sm"
-              value={form.departmentId}
-              onChange={(e) => setForm({ ...form, departmentId: e.target.value })}
-            >
+            <select className="input-field" value={form.departmentId} onChange={(e) => setForm({ ...form, departmentId: e.target.value })}>
               <option value="">No department</option>
               {departments?.map((d) => (
                 <option key={d.id} value={d.id}>
@@ -107,11 +107,7 @@ export function EmployeesPage() {
                 </option>
               ))}
             </select>
-            <select
-              className="rounded border border-gray-300 px-3 py-2 text-sm"
-              value={form.managerId}
-              onChange={(e) => setForm({ ...form, managerId: e.target.value })}
-            >
+            <select className="input-field" value={form.managerId} onChange={(e) => setForm({ ...form, managerId: e.target.value })}>
               <option value="">No manager</option>
               {employees?.map((emp) => (
                 <option key={emp.id} value={emp.id}>
@@ -120,27 +116,27 @@ export function EmployeesPage() {
               ))}
             </select>
             <input
-              className="rounded border border-gray-300 px-3 py-2 text-sm"
+              className="input-field"
               placeholder="Position"
               value={form.position}
               onChange={(e) => setForm({ ...form, position: e.target.value })}
             />
             <input
               type="date"
-              className="rounded border border-gray-300 px-3 py-2 text-sm"
+              className="input-field"
               value={form.hireDate}
               onChange={(e) => setForm({ ...form, hireDate: e.target.value })}
               required
             />
             <input
               type="email"
-              className="rounded border border-gray-300 px-3 py-2 text-sm"
+              className="input-field"
               placeholder="Invite email (optional — grants self-service login)"
               value={form.inviteEmail}
               onChange={(e) => setForm({ ...form, inviteEmail: e.target.value })}
             />
             <select
-              className="rounded border border-gray-300 px-3 py-2 text-sm"
+              className="input-field"
               value={form.inviteRole}
               onChange={(e) => setForm({ ...form, inviteRole: e.target.value })}
               disabled={!form.inviteEmail}
@@ -150,44 +146,46 @@ export function EmployeesPage() {
               <option value="HR">HR</option>
             </select>
 
-            <button
-              type="submit"
-              disabled={createEmployee.isPending}
-              className="col-span-2 rounded bg-gray-900 py-2 text-sm font-medium text-white disabled:opacity-50"
-            >
+            <button type="submit" disabled={createEmployee.isPending} className="btn-primary col-span-2">
+              <UserPlus size={16} />
               {createEmployee.isPending ? "Creating…" : "Add employee"}
             </button>
           </form>
         )}
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-rose-600">{error}</p>}
         {lastInvite && (
-          <p className="rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+          <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
             Temp password for {lastInvite.email}: <code className="font-mono">{lastInvite.tempPassword}</code> (would be
             emailed in production)
           </p>
         )}
 
-        <div className="divide-y divide-gray-200 rounded-lg border border-gray-200 bg-white shadow-sm">
-          {isLoading && <p className="p-4 text-sm text-gray-500">Loading…</p>}
-          {employees?.length === 0 && <p className="p-4 text-sm text-gray-500">No employees visible to you yet.</p>}
+        <div className="card divide-y divide-slate-100">
+          {isLoading && <p className="p-4 text-sm text-slate-500">Loading…</p>}
+          {employees?.length === 0 && <p className="p-4 text-sm text-slate-500">No employees visible to you yet.</p>}
           {employees?.map((emp) => (
             <div key={emp.id} className="flex items-center justify-between p-4">
-              <div>
-                <p className="text-sm font-medium text-gray-900">
-                  {emp.firstName} {emp.lastName}
-                </p>
-                <p className="text-xs text-gray-500">
-                  {emp.department?.name ?? "No department"}
-                  {emp.manager ? ` · Reports to ${emp.manager.firstName} ${emp.manager.lastName}` : ""}
-                  {emp.user ? ` · ${emp.user.email} (${emp.user.role})` : " · No login"}
-                </p>
+              <div className="flex items-center gap-3">
+                <Avatar firstName={emp.firstName} lastName={emp.lastName} />
+                <div>
+                  <p className="text-sm font-medium text-slate-900">
+                    {emp.firstName} {emp.lastName}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    {emp.department?.name ?? "No department"}
+                    {emp.manager ? ` · Reports to ${emp.manager.firstName} ${emp.manager.lastName}` : ""}
+                    {emp.user ? ` · ${emp.user.email} (${emp.user.role})` : " · No login"}
+                  </p>
+                </div>
               </div>
-              <span className="rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-700">{emp.employmentStatus}</span>
+              <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusStyles[emp.employmentStatus]}`}>
+                {emp.employmentStatus}
+              </span>
             </div>
           ))}
         </div>
       </div>
-    </div>
+    </AppShell>
   );
 }
