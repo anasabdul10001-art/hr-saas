@@ -22,6 +22,7 @@ export type CreateEmployeeInput = {
 export async function createEmployee(companyId: string, input: CreateEmployeeInput) {
   if (input.departmentId) await assertBelongsToCompany("department", companyId, input.departmentId);
   if (input.managerId) await assertBelongsToCompany("employee", companyId, input.managerId);
+  await assertUnderEmployeeLimit(companyId);
 
   return prisma.$transaction(async (tx) => {
     let userId: string | undefined;
@@ -126,4 +127,16 @@ async function assertBelongsToCompany(kind: "employee" | "department", companyId
       ? await prisma.employee.findFirst({ where: { id, companyId } })
       : await prisma.department.findFirst({ where: { id, companyId } });
   if (!record) throw new Error(`${kind} not found in this company`);
+}
+
+async function assertUnderEmployeeLimit(companyId: string) {
+  const subscription = await prisma.subscription.findUnique({ where: { companyId }, include: { plan: true } });
+  if (!subscription) return; // no subscription record (e.g. seed hasn't run) — don't block on it
+
+  const currentCount = await prisma.employee.count({ where: { companyId } });
+  if (currentCount >= subscription.plan.maxEmployees) {
+    throw new Error(
+      `Employee limit reached for the ${subscription.plan.name} plan (${subscription.plan.maxEmployees}). Upgrade to add more employees.`
+    );
+  }
 }

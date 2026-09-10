@@ -23,12 +23,23 @@ See [`docs/project-brief.md`](docs/project-brief.md) for the complete module-by-
 2. Employee & department management + RBAC ✅
 3. Attendance (self check-in/out + manual entry) ✅
 4. Leave management + approval workflow ✅
-5. **Salary structure + payroll run + payslips** ✅ ← current, done — next up is phase 6
-6. Salary advances + automatic payroll deduction
-7. Subscription plans + Stripe billing + Super Admin dashboard
+5. Salary structure + payroll run + payslips ✅
+6. Salary advances + automatic payroll deduction ✅
+7. **Subscription plans + Stripe billing + Super Admin dashboard** ✅ ← current, done — next up is phase 8
 8. Company/HR dashboards, reports, notifications, polish
 
 ## Ground rules
 - No floating-point money — integer minor units (cents/fils) or `Decimal`.
 - RBAC enforced on every API endpoint, not just hidden in the UI.
 - Propose schema/design changes before large code generation passes for a new phase.
+
+## Activating real Stripe billing
+Checkout/portal/webhooks are fully implemented but untested against a real Stripe account (none
+configured in this environment). To activate: create a Stripe account, grab test-mode keys from
+https://dashboard.stripe.com/test/apikeys, set `STRIPE_SECRET_KEY` in `backend/.env`, then either
+use the Stripe CLI (`stripe listen --forward-to localhost:4000/api/billing/webhook`) for a real
+webhook secret, or reuse a locally-generated one for testing signature verification only (see git
+history around the phase-7 commit for how that was done without a real account). Run
+`npm run prisma:seed` once to create the default plans and a Super Admin login
+(`SUPER_ADMIN_EMAIL`/`SUPER_ADMIN_PASSWORD` in `.env`, defaults to `superadmin@local.test` /
+`changeme123` if unset — change this before deploying anywhere real).

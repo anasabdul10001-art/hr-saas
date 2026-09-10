@@ -14,4 +14,6 @@ export const env = {
   jwtAccessExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN ?? "15m",
   jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN ?? "30d",
   corsOrigin: process.env.CORS_ORIGIN ?? "http://localhost:5173",
+  frontendUrl: process.env.FRONTEND_URL ?? "http://localhost:5173",
+  stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
 };

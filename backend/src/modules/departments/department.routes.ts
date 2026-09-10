@@ -1,12 +1,12 @@
 import { Router } from "express";
 import { z } from "zod";
 import { UserRole } from "@prisma/client";
-import { requireAuth, requireCompanyContext, requireRole } from "../../middleware/auth";
+import { blockSuspendedCompany, requireAuth, requireCompanyContext, requireRole } from "../../middleware/auth";
 import * as departmentService from "./department.service";
 
 export const departmentRouter = Router();
 
-departmentRouter.use(requireAuth, requireCompanyContext);
+departmentRouter.use(requireAuth, requireCompanyContext, blockSuspendedCompany);
 
 departmentRouter.get("/", async (req, res) => {
   const departments = await departmentService.listDepartments(req.user!.companyId!);

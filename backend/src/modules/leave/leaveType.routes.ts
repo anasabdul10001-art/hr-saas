@@ -1,12 +1,12 @@
 import { Router } from "express";
 import { z } from "zod";
 import { UserRole } from "@prisma/client";
-import { requireAuth, requireCompanyContext, requireRole } from "../../middleware/auth";
+import { blockSuspendedCompany, requireAuth, requireCompanyContext, requireRole } from "../../middleware/auth";
 import * as leaveTypeService from "./leaveType.service";
 
 export const leaveTypeRouter = Router();
 
-leaveTypeRouter.use(requireAuth, requireCompanyContext);
+leaveTypeRouter.use(requireAuth, requireCompanyContext, blockSuspendedCompany);
 
 leaveTypeRouter.get("/", async (req, res) => {
   const leaveTypes = await leaveTypeService.listLeaveTypes(req.user!.companyId!);

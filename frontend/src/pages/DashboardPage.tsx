@@ -29,6 +29,14 @@ export function DashboardPage() {
           <Link to="/payroll" className="text-gray-900 underline">
             Payroll
           </Link>
+          <Link to="/advances" className="text-gray-900 underline">
+            Advances
+          </Link>
+          {(user?.role === "COMPANY_ADMIN" || user?.role === "HR") && (
+            <Link to="/billing" className="text-gray-900 underline">
+              Billing
+            </Link>
+          )}
         </div>
         <dl className="mt-4 space-y-2 text-sm">
           <div>

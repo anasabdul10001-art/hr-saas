@@ -1,12 +1,12 @@
 import { Router } from "express";
 import { z } from "zod";
 import { UserRole } from "@prisma/client";
-import { requireAuth, requireCompanyContext, requireRole } from "../../middleware/auth";
+import { blockSuspendedCompany, requireAuth, requireCompanyContext, requireRole } from "../../middleware/auth";
 import * as employeeSalaryService from "./employeeSalary.service";
 
 export const employeeSalaryRouter = Router();
 
-employeeSalaryRouter.use(requireAuth, requireCompanyContext);
+employeeSalaryRouter.use(requireAuth, requireCompanyContext, blockSuspendedCompany);
 
 employeeSalaryRouter.get("/:employeeId", async (req, res) => {
   try {

@@ -1,12 +1,12 @@
 import { Router } from "express";
 import { z } from "zod";
 import { UserRole } from "@prisma/client";
-import { requireAuth, requireCompanyContext, requireRole } from "../../middleware/auth";
+import { blockSuspendedCompany, requireAuth, requireCompanyContext, requireRole } from "../../middleware/auth";
 import * as attendanceService from "./attendance.service";
 
 export const attendanceRouter = Router();
 
-attendanceRouter.use(requireAuth, requireCompanyContext);
+attendanceRouter.use(requireAuth, requireCompanyContext, blockSuspendedCompany);
 
 attendanceRouter.post("/check-in", async (req, res) => {
   try {

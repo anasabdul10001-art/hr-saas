@@ -1,12 +1,12 @@
 import { Router } from "express";
 import { z } from "zod";
 import { LeaveRequestStatus, UserRole } from "@prisma/client";
-import { requireAuth, requireCompanyContext, requireRole } from "../../middleware/auth";
+import { blockSuspendedCompany, requireAuth, requireCompanyContext, requireRole } from "../../middleware/auth";
 import * as leaveRequestService from "./leaveRequest.service";
 
 export const leaveRequestRouter = Router();
 
-leaveRequestRouter.use(requireAuth, requireCompanyContext);
+leaveRequestRouter.use(requireAuth, requireCompanyContext, blockSuspendedCompany);
 
 const createSchema = z.object({
   leaveTypeId: z.string(),

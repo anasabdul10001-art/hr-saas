@@ -98,6 +98,78 @@ export type PayslipBreakdown = {
   unpaidAbsence: { workingDays: number; unpaidDays: number; dailyRate: number; deduction: number };
 };
 
+export type AdvanceStatus = "PENDING_MANAGER" | "PENDING_HR" | "APPROVED" | "REJECTED" | "REPAID";
+
+export type AdvanceInstallment = {
+  id: string;
+  amount: number;
+  dueDate: string;
+  isPaid: boolean;
+  paidInPayrollRunId: string | null;
+};
+
+export type SalaryAdvance = {
+  id: string;
+  employeeId: string;
+  employee?: { id: string; firstName: string; lastName: string; managerId: string | null };
+  amount: number;
+  installmentsCount: number;
+  status: AdvanceStatus;
+  reason: string | null;
+  installments: AdvanceInstallment[];
+  paidAmount: number;
+  remainingAmount: number;
+};
+
+export type Plan = {
+  id: string;
+  name: string;
+  priceMonthly: number;
+  currency: string;
+  maxEmployees: number;
+  features: Record<string, boolean>;
+  isActive: boolean;
+};
+
+export type SubscriptionStatusValue = "TRIALING" | "ACTIVE" | "PAST_DUE" | "CANCELED" | "EXPIRED";
+
+export type Invoice = {
+  id: string;
+  amountDue: number;
+  amountPaid: number;
+  currency: string;
+  status: string;
+  issuedAt: string;
+};
+
+export type CompanySubscription = {
+  id: string;
+  status: SubscriptionStatusValue;
+  plan: Plan;
+  stripeCustomerId: string | null;
+  currentPeriodEnd: string | null;
+  trialEndsAt: string | null;
+  invoices: Invoice[];
+};
+
+export type AdminCompanyListItem = {
+  id: string;
+  name: string;
+  slug: string;
+  isSuspended: boolean;
+  createdAt: string;
+  employeeCount: number;
+  subscription: { status: SubscriptionStatusValue; plan: string; priceMonthly: number } | null;
+};
+
+export type RevenueOverview = {
+  mrr: number;
+  arr: number;
+  countsByStatus: Record<string, number>;
+  pastDueAccounts: Array<{ companyId: string; companyName: string; plan: string }>;
+  revenueTrend: Array<{ month: string; amount: number }>;
+};
+
 export type Payslip = {
   id: string;
   employeeId: string;

@@ -15,8 +15,8 @@ export function LoginPage() {
     setError(null);
     setLoading(true);
     try {
-      await login(email, password);
-      navigate("/dashboard");
+      const loggedInUser = await login(email, password);
+      navigate(loggedInUser.role === "SUPER_ADMIN" ? "/admin" : "/dashboard");
     } catch {
       setError("Invalid email or password");
     } finally {

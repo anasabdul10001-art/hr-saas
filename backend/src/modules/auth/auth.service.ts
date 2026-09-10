@@ -2,7 +2,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "../../lib/prisma";
 import { generateRefreshToken, hashRefreshToken, signAccessToken } from "../../lib/jwt";
 import { env } from "../../config/env";
-import { UserRole } from "@prisma/client";
+import { SubscriptionStatus, UserRole } from "@prisma/client";
 
 function slugify(name: string): string {
   return name
@@ -63,6 +63,21 @@ export async function signupCompany(input: {
         role: UserRole.COMPANY_ADMIN,
       },
     });
+
+    // Every company starts on a 14-day trial of the Free plan; upgrading is a billing action
+    // handled separately (see modules/billing).
+    const freePlan = await tx.subscriptionPlan.findFirst({ where: { name: "Free" } });
+    if (freePlan) {
+      await tx.subscription.create({
+        data: {
+          companyId: company.id,
+          planId: freePlan.id,
+          status: SubscriptionStatus.TRIALING,
+          trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+        },
+      });
+    }
+
     return { company, user };
   });
 

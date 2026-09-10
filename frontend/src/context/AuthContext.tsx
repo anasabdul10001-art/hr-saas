@@ -11,8 +11,8 @@ type User = {
 
 type AuthContextValue = {
   user: User | null;
-  login: (email: string, password: string) => Promise<void>;
-  signup: (input: { companyName: string; currency: string; adminEmail: string; adminPassword: string }) => Promise<void>;
+  login: (email: string, password: string) => Promise<User>;
+  signup: (input: { companyName: string; currency: string; adminEmail: string; adminPassword: string }) => Promise<User>;
   logout: () => Promise<void>;
 };
 
@@ -41,6 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryClient.clear();
     persistSession(data.user, data.accessToken, data.refreshToken);
     setUser(data.user);
+    return data.user as User;
   }
 
   async function signup(input: { companyName: string; currency: string; adminEmail: string; adminPassword: string }) {
@@ -49,6 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const signedUpUser = { ...data.user, companyId: data.company.id };
     persistSession(signedUpUser, data.accessToken, data.refreshToken);
     setUser(signedUpUser);
+    return signedUpUser as User;
   }
 
   async function logout() {

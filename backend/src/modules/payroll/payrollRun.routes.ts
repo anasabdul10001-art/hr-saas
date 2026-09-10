@@ -1,13 +1,13 @@
 import { Router } from "express";
 import { z } from "zod";
 import { UserRole } from "@prisma/client";
-import { requireAuth, requireCompanyContext, requireRole } from "../../middleware/auth";
+import { blockSuspendedCompany, requireAuth, requireCompanyContext, requireRole } from "../../middleware/auth";
 import * as payrollRunService from "./payrollRun.service";
 import { findOwnEmployee } from "../employees/employee.scope";
 
 export const payrollRunRouter = Router();
 
-payrollRunRouter.use(requireAuth, requireCompanyContext);
+payrollRunRouter.use(requireAuth, requireCompanyContext, blockSuspendedCompany);
 
 payrollRunRouter.get("/payslips/me", async (req, res) => {
   const employee = await findOwnEmployee(req.user!);

@@ -75,6 +75,7 @@ model Company {
   currency     String   @default("usd")
   timezone     String   @default("UTC")
   workingDays  Json? // e.g. ["mon","tue","wed","thu","fri"]
+  isSuspended  Boolean  @default(false) // Super Admin manual suspension, independent of billing status
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

@@ -1,4 +1,4 @@
-import { EmploymentStatus, LeaveRequestStatus, PayrollRunStatus, SalaryComponentType } from "@prisma/client";
+import { AdvanceStatus, EmploymentStatus, LeaveRequestStatus, PayrollRunStatus, SalaryComponentType } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
 
 const DAY_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
@@ -118,23 +118,54 @@ export async function processPayrollRun(companyId: string, runId: string) {
       else componentDeductions += amount;
     }
 
+    // Advance installments that have come due by this pay period, for advances already through
+    // final approval — deducted automatically, same as unpaid-absence days.
+    const dueInstallments = await prisma.advanceInstallment.findMany({
+      where: {
+        isPaid: false,
+        dueDate: { lte: endOfDayUTC(run.periodEnd) },
+        advance: { employeeId: employee.id, status: AdvanceStatus.APPROVED },
+      },
+    });
+    const advanceDeduction = dueInstallments.reduce((sum, i) => sum + i.amount, 0);
+
     const grossPay = baseSalary + componentEarnings;
-    const totalDeductions = componentDeductions + unpaidDeduction;
+    const totalDeductions = componentDeductions + unpaidDeduction + advanceDeduction;
     const netPay = grossPay - totalDeductions;
 
-    const payslip = await prisma.payslip.create({
-      data: {
-        payrollRunId: run.id,
-        employeeId: employee.id,
-        grossPay,
-        totalDeductions,
-        netPay,
-        breakdown: {
-          baseSalary,
-          components: breakdownComponents,
-          unpaidAbsence: { workingDays: workingDays.length, unpaidDays, dailyRate: Math.round(dailyRate), deduction: unpaidDeduction },
+    const payslip = await prisma.$transaction(async (tx) => {
+      const created = await tx.payslip.create({
+        data: {
+          payrollRunId: run.id,
+          employeeId: employee.id,
+          grossPay,
+          totalDeductions,
+          netPay,
+          breakdown: {
+            baseSalary,
+            components: breakdownComponents,
+            unpaidAbsence: { workingDays: workingDays.length, unpaidDays, dailyRate: Math.round(dailyRate), deduction: unpaidDeduction },
+            advanceInstallments: dueInstallments.map((i) => ({ id: i.id, advanceId: i.advanceId, amount: i.amount })),
+          },
         },
-      },
+      });
+
+      if (dueInstallments.length > 0) {
+        await tx.advanceInstallment.updateMany({
+          where: { id: { in: dueInstallments.map((i) => i.id) } },
+          data: { isPaid: true, paidInPayrollRunId: run.id },
+        });
+
+        const advanceIds = [...new Set(dueInstallments.map((i) => i.advanceId))];
+        for (const advanceId of advanceIds) {
+          const remaining = await tx.advanceInstallment.count({ where: { advanceId, isPaid: false } });
+          if (remaining === 0) {
+            await tx.salaryAdvance.update({ where: { id: advanceId }, data: { status: AdvanceStatus.REPAID } });
+          }
+        }
+      }
+
+      return created;
     });
     payslips.push(payslip);
   }

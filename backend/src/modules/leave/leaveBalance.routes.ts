@@ -1,14 +1,14 @@
 import { Router } from "express";
 import { z } from "zod";
 import { UserRole } from "@prisma/client";
-import { requireAuth, requireCompanyContext, requireRole } from "../../middleware/auth";
+import { blockSuspendedCompany, requireAuth, requireCompanyContext, requireRole } from "../../middleware/auth";
 import * as leaveBalanceService from "./leaveBalance.service";
 import { findOwnEmployee, scopedEmployeeWhere } from "../employees/employee.scope";
 import { prisma } from "../../lib/prisma";
 
 export const leaveBalanceRouter = Router();
 
-leaveBalanceRouter.use(requireAuth, requireCompanyContext);
+leaveBalanceRouter.use(requireAuth, requireCompanyContext, blockSuspendedCompany);
 
 const yearQuerySchema = z.object({ year: z.coerce.number().int().optional() });
 
