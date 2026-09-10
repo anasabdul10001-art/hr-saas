@@ -7,6 +7,8 @@ import { SignupPage } from "./pages/SignupPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { EmployeesPage } from "./pages/EmployeesPage";
 import { DepartmentsPage } from "./pages/DepartmentsPage";
+import { AttendancePage } from "./pages/AttendancePage";
+import { LeavePage } from "./pages/LeavePage";
 
 const queryClient = new QueryClient();
 
@@ -22,6 +24,8 @@ function App() {
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/employees" element={<EmployeesPage />} />
               <Route path="/departments" element={<DepartmentsPage />} />
+              <Route path="/attendance" element={<AttendancePage />} />
+              <Route path="/leave" element={<LeavePage />} />
             </Route>
             <Route path="*" element={<Navigate to="/signup" replace />} />
           </Routes>

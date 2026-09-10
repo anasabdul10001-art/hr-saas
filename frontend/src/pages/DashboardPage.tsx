@@ -20,6 +20,12 @@ export function DashboardPage() {
           <Link to="/departments" className="text-gray-900 underline">
             Departments
           </Link>
+          <Link to="/attendance" className="text-gray-900 underline">
+            Attendance
+          </Link>
+          <Link to="/leave" className="text-gray-900 underline">
+            Leave
+          </Link>
         </div>
         <dl className="mt-4 space-y-2 text-sm">
           <div>

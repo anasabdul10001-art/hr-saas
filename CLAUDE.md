@@ -20,9 +20,9 @@ See [`docs/project-brief.md`](docs/project-brief.md) for the complete module-by-
 
 ## Build order (current phase tracked here — update as we progress)
 1. Project scaffolding + auth + multi-tenant data model + company signup ✅
-2. **Employee & department management + RBAC** ✅ ← current, done — next up is phase 3
-3. Attendance (self check-in/out + manual entry)
-4. Leave management + approval workflow
+2. Employee & department management + RBAC ✅
+3. Attendance (self check-in/out + manual entry) ✅
+4. **Leave management + approval workflow** ✅ ← current, done — next up is phase 5
 5. Salary structure + payroll run + payslips
 6. Salary advances + automatic payroll deduction
 7. Subscription plans + Stripe billing + Super Admin dashboard
