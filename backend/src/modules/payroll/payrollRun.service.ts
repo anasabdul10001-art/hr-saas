@@ -1,5 +1,6 @@
 import { AdvanceStatus, EmploymentStatus, LeaveRequestStatus, PayrollRunStatus, SalaryComponentType } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
+import { notify } from "../notification/notification.service";
 
 const DAY_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 
@@ -51,7 +52,7 @@ export async function getPayrollRun(companyId: string, runId: string) {
   return run;
 }
 
-export async function processPayrollRun(companyId: string, runId: string) {
+export async function processPayrollRun(companyId: string, runId: string, actingUserId: string) {
   const run = await prisma.payrollRun.findFirst({ where: { id: runId, companyId } });
   if (!run) throw new Error("Payroll run not found");
   if (run.status !== PayrollRunStatus.DRAFT) throw new Error("Only a draft payroll run can be processed");
@@ -168,9 +169,34 @@ export async function processPayrollRun(companyId: string, runId: string) {
       return created;
     });
     payslips.push(payslip);
+
+    if (employee.userId) {
+      await notify(
+        employee.userId,
+        "payroll.payslip_ready",
+        "Your payslip is ready",
+        `Net pay: ${(netPay / 100).toFixed(2)}`
+      );
+    }
   }
 
   await prisma.payrollRun.update({ where: { id: run.id }, data: { status: PayrollRunStatus.PROCESSED, runAt: new Date() } });
+
+  await prisma.auditLog.create({
+    data: {
+      companyId,
+      userId: actingUserId,
+      action: "payroll.run",
+      entityType: "PayrollRun",
+      entityId: run.id,
+      metadata: {
+        periodStart: run.periodStart,
+        periodEnd: run.periodEnd,
+        employeeCount: payslips.length,
+        totalNetPay: payslips.reduce((sum, p) => sum + p.netPay, 0),
+      },
+    },
+  });
 
   return payslips;
 }

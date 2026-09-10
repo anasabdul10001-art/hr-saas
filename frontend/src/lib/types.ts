@@ -170,6 +170,44 @@ export type RevenueOverview = {
   revenueTrend: Array<{ month: string; amount: number }>;
 };
 
+export type CompanyDashboard = {
+  role: "company";
+  totalEmployees: number;
+  presentToday: number;
+  onLeaveToday: number;
+  pendingLeaveApprovals: number;
+  pendingAdvanceApprovals: number;
+  lastPayrollRun: { periodStart: string; periodEnd: string; status: string; totalNetPay: number } | null;
+};
+
+export type ManagerDashboard = {
+  role: "manager";
+  teamSize: number;
+  presentToday: number;
+  onLeaveToday: number;
+  pendingLeaveApprovals: number;
+  pendingAdvanceApprovals: number;
+};
+
+export type EmployeeDashboard = {
+  role: "employee";
+  attendanceDaysThisMonth: number;
+  leaveBalances: Array<{ leaveType: string; balanceDays: number }>;
+  myPendingRequests: number;
+  lastPayslip: { periodStart: string; periodEnd: string; netPay: number } | null;
+};
+
+export type DashboardData = CompanyDashboard | ManagerDashboard | EmployeeDashboard;
+
+export type AppNotification = {
+  id: string;
+  type: string;
+  title: string;
+  body: string | null;
+  readAt: string | null;
+  createdAt: string;
+};
+
 export type Payslip = {
   id: string;
   employeeId: string;

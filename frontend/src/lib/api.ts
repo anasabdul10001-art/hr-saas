@@ -44,3 +44,17 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+// CSV/file endpoints need the Authorization header, so a plain <a href> can't be used — fetch
+// the file as a blob through the authenticated client instead and trigger the save manually.
+export async function downloadFile(url: string, filename: string) {
+  const response = await api.get(url, { responseType: "blob" });
+  const blobUrl = window.URL.createObjectURL(new Blob([response.data]));
+  const link = document.createElement("a");
+  link.href = blobUrl;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(blobUrl);
+}

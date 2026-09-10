@@ -25,8 +25,19 @@ See [`docs/project-brief.md`](docs/project-brief.md) for the complete module-by-
 4. Leave management + approval workflow ✅
 5. Salary structure + payroll run + payslips ✅
 6. Salary advances + automatic payroll deduction ✅
-7. **Subscription plans + Stripe billing + Super Admin dashboard** ✅ ← current, done — next up is phase 8
-8. Company/HR dashboards, reports, notifications, polish
+7. Subscription plans + Stripe billing + Super Admin dashboard ✅
+8. **Company/HR dashboards, reports, notifications, polish** ✅ ← current, done — all 8 phases of the original build order are now complete
+
+## What's next (not started — ideas for a future session)
+- i18n (Arabic + English, RTL/LTR) — planned in the tech stack but not yet wired into the UI;
+  everything is English-only so far.
+- shadcn/ui — the UI currently uses plain Tailwind utility classes, not the shadcn component
+  library named in the original spec.
+- MENA-local payment gateway (PayTabs/HyperPay/Moyasar) behind Stripe as a second provider.
+- Real device/biometric attendance integration (the `AttendanceSource.DEVICE` enum value and a
+  `source` field already exist for this — just needs an ingestion endpoint).
+- Broader automated test coverage — everything so far has been verified via manual curl/browser
+  runs each phase, not an automated test suite.
 
 ## Ground rules
 - No floating-point money — integer minor units (cents/fils) or `Decimal`.

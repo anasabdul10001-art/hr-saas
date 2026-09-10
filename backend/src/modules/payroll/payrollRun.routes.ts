@@ -49,7 +49,7 @@ payrollRunRouter.get("/:id", async (req, res) => {
 
 payrollRunRouter.post("/:id/process", async (req, res) => {
   try {
-    const payslips = await payrollRunService.processPayrollRun(req.user!.companyId!, req.params.id);
+    const payslips = await payrollRunService.processPayrollRun(req.user!.companyId!, req.params.id, req.user!.id);
     res.json(payslips);
   } catch (err) {
     res.status(400).json({ error: (err as Error).message });

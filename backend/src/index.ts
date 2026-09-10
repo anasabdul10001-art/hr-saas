@@ -15,6 +15,9 @@ import { advanceRouter } from "./modules/advance/advance.routes";
 import { planRouter } from "./modules/billing/plan.routes";
 import { billingRouter, billingWebhookRouter } from "./modules/billing/billing.routes";
 import { adminRouter } from "./modules/admin/admin.routes";
+import { notificationRouter } from "./modules/notification/notification.routes";
+import { dashboardRouter } from "./modules/dashboard/dashboard.routes";
+import { reportsRouter } from "./modules/reports/reports.routes";
 
 const app = express();
 
@@ -42,6 +45,9 @@ app.use("/api/advances", advanceRouter);
 app.use("/api/plans", planRouter);
 app.use("/api/billing", billingRouter);
 app.use("/api/admin", adminRouter);
+app.use("/api/notifications", notificationRouter);
+app.use("/api/dashboard", dashboardRouter);
+app.use("/api/reports", reportsRouter);
 
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err);

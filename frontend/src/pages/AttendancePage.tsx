@@ -1,7 +1,7 @@
 import { type FormEvent, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { api } from "../lib/api";
+import { api, downloadFile } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import type { AttendanceRecord, Employee } from "../lib/types";
 
@@ -185,7 +185,15 @@ export function AttendancePage() {
 
         {canViewTeam && (
           <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
-            <h2 className="border-b border-gray-100 p-4 text-sm font-medium text-gray-900">Team attendance</h2>
+            <div className="flex items-center justify-between border-b border-gray-100 p-4">
+              <h2 className="text-sm font-medium text-gray-900">Team attendance</h2>
+              <button
+                onClick={() => downloadFile("/reports/attendance.csv", "attendance.csv")}
+                className="text-xs text-gray-600 underline"
+              >
+                Download CSV
+              </button>
+            </div>
             <div className="divide-y divide-gray-100">
               {teamAttendance.data?.length === 0 && <p className="p-4 text-sm text-gray-500">No records yet.</p>}
               {teamAttendance.data?.map((r) => (

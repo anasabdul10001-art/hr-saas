@@ -80,7 +80,7 @@ employeeRouter.patch("/:id", requireRole(UserRole.COMPANY_ADMIN, UserRole.HR), a
   if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
 
   try {
-    const employee = await employeeService.updateEmployee(req.user!.companyId!, req.params.id, parsed.data);
+    const employee = await employeeService.updateEmployee(req.user!.companyId!, req.params.id, parsed.data, req.user!.id);
     res.json(employee);
   } catch (err) {
     res.status(400).json({ error: (err as Error).message });

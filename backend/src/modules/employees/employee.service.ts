@@ -109,16 +109,33 @@ export async function updateEmployee(
     managerId: string | null;
     position: string | null;
     employmentStatus: "ACTIVE" | "ON_LEAVE" | "TERMINATED";
-  }>
+  }>,
+  actingUserId: string
 ) {
-  await assertBelongsToCompany("employee", companyId, employeeId);
+  const existing = await prisma.employee.findFirst({ where: { id: employeeId, companyId } });
+  if (!existing) throw new Error("employee not found in this company");
   if (input.departmentId) await assertBelongsToCompany("department", companyId, input.departmentId);
   if (input.managerId) {
     if (input.managerId === employeeId) throw new Error("An employee cannot be their own manager");
     await assertBelongsToCompany("employee", companyId, input.managerId);
   }
 
-  return prisma.employee.update({ where: { id: employeeId }, data: input });
+  const updated = await prisma.employee.update({ where: { id: employeeId }, data: input });
+
+  if (input.employmentStatus && input.employmentStatus !== existing.employmentStatus) {
+    await prisma.auditLog.create({
+      data: {
+        companyId,
+        userId: actingUserId,
+        action: "employee.status_change",
+        entityType: "Employee",
+        entityId: employeeId,
+        metadata: { from: existing.employmentStatus, to: input.employmentStatus },
+      },
+    });
+  }
+
+  return updated;
 }
 
 async function assertBelongsToCompany(kind: "employee" | "department", companyId: string, id: string) {

@@ -3,6 +3,7 @@ import { prisma } from "../../lib/prisma";
 import { AuthenticatedUser } from "../../middleware/auth";
 import { findOwnEmployee, scopedEmployeeWhere } from "../employees/employee.scope";
 import { deductBalance, getOrCreateBalance } from "./leaveBalance.service";
+import { notify, notifyMany, resolveApproverUserIds } from "../notification/notification.service";
 
 function inclusiveDayCount(start: Date, end: Date): number {
   const ms = end.getTime() - start.getTime();
@@ -42,7 +43,7 @@ export async function createLeaveRequest(
 
   const initialStatus = employee.managerId ? LeaveRequestStatus.PENDING_MANAGER : LeaveRequestStatus.PENDING_HR;
 
-  return prisma.leaveRequest.create({
+  const request = await prisma.leaveRequest.create({
     data: {
       companyId: user.companyId!,
       employeeId: employee.id,
@@ -53,6 +54,16 @@ export async function createLeaveRequest(
       status: initialStatus,
     },
   });
+
+  const approverIds = await resolveApproverUserIds(user.companyId!, initialStatus, employee.managerId);
+  await notifyMany(
+    approverIds,
+    "leave.pending_approval",
+    `Leave request from ${employee.firstName} ${employee.lastName}`,
+    `${leaveType.name}: ${input.startDate} to ${input.endDate}`
+  );
+
+  return request;
 }
 
 export async function listMyLeaveRequests(user: AuthenticatedUser) {
@@ -101,15 +112,28 @@ export async function decide(
     if (!isAssignedManager && !isAdmin) throw new Error("Only this employee's manager can act on this request");
 
     if (decision === "REJECT") {
-      return prisma.leaveRequest.update({
+      const updated = await prisma.leaveRequest.update({
         where: { id: request.id },
         data: { status: LeaveRequestStatus.REJECTED, rejectionReason: reason },
       });
+      if (request.employee.userId) {
+        await notify(request.employee.userId, "leave.decided", "Leave request rejected", reason);
+      }
+      return updated;
     }
-    return prisma.leaveRequest.update({
+
+    const updated = await prisma.leaveRequest.update({
       where: { id: request.id },
       data: { status: LeaveRequestStatus.PENDING_HR, managerApprovedBy: user.id, managerApprovedAt: new Date() },
     });
+    const hrApproverIds = await resolveApproverUserIds(user.companyId!, LeaveRequestStatus.PENDING_HR, null);
+    await notifyMany(
+      hrApproverIds,
+      "leave.pending_approval",
+      `Leave request from ${request.employee.firstName} ${request.employee.lastName}`,
+      "Approved by manager, awaiting final approval"
+    );
+    return updated;
   }
 
   if (request.status === LeaveRequestStatus.PENDING_HR) {
@@ -118,20 +142,28 @@ export async function decide(
     }
 
     if (decision === "REJECT") {
-      return prisma.leaveRequest.update({
+      const updated = await prisma.leaveRequest.update({
         where: { id: request.id },
         data: { status: LeaveRequestStatus.REJECTED, rejectionReason: reason },
       });
+      if (request.employee.userId) {
+        await notify(request.employee.userId, "leave.decided", "Leave request rejected", reason);
+      }
+      return updated;
     }
 
     const year = request.startDate.getFullYear();
     const days = inclusiveDayCount(request.startDate, request.endDate);
     await deductBalance(request.employeeId, request.leaveTypeId, year, days);
 
-    return prisma.leaveRequest.update({
+    const updated = await prisma.leaveRequest.update({
       where: { id: request.id },
       data: { status: LeaveRequestStatus.APPROVED, hrApprovedBy: user.id, hrApprovedAt: new Date() },
     });
+    if (request.employee.userId) {
+      await notify(request.employee.userId, "leave.decided", "Leave request approved");
+    }
+    return updated;
   }
 
   throw new Error("This request is not pending a decision");

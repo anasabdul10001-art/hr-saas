@@ -2,6 +2,7 @@ import { AdvanceStatus, UserRole } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
 import { AuthenticatedUser } from "../../middleware/auth";
 import { findOwnEmployee, scopedEmployeeWhere } from "../employees/employee.scope";
+import { notify, notifyMany, resolveApproverUserIds } from "../notification/notification.service";
 
 const OPEN_STATUSES: AdvanceStatus[] = [AdvanceStatus.PENDING_MANAGER, AdvanceStatus.PENDING_HR, AdvanceStatus.APPROVED];
 
@@ -19,7 +20,7 @@ export async function createAdvanceRequest(
 
   const initialStatus = employee.managerId ? AdvanceStatus.PENDING_MANAGER : AdvanceStatus.PENDING_HR;
 
-  return prisma.salaryAdvance.create({
+  const advance = await prisma.salaryAdvance.create({
     data: {
       companyId: user.companyId!,
       employeeId: employee.id,
@@ -29,6 +30,16 @@ export async function createAdvanceRequest(
       status: initialStatus,
     },
   });
+
+  const approverIds = await resolveApproverUserIds(user.companyId!, initialStatus, employee.managerId);
+  await notifyMany(
+    approverIds,
+    "advance.pending_approval",
+    `Advance request from ${employee.firstName} ${employee.lastName}`,
+    `${(input.amount / 100).toFixed(2)} in ${input.installmentsCount} installment(s)`
+  );
+
+  return advance;
 }
 
 function withBalance(advance: { amount: number; installments: { amount: number; isPaid: boolean }[] }) {
@@ -91,9 +102,19 @@ export async function decide(user: AuthenticatedUser, advanceId: string, decisio
     if (!isAssignedManager && !isAdmin) throw new Error("Only this employee's manager can act on this request");
 
     if (decision === "REJECT") {
-      return prisma.salaryAdvance.update({ where: { id: advance.id }, data: { status: AdvanceStatus.REJECTED } });
+      const updated = await prisma.salaryAdvance.update({ where: { id: advance.id }, data: { status: AdvanceStatus.REJECTED } });
+      if (advance.employee.userId) await notify(advance.employee.userId, "advance.decided", "Advance request rejected");
+      return updated;
     }
-    return prisma.salaryAdvance.update({ where: { id: advance.id }, data: { status: AdvanceStatus.PENDING_HR } });
+    const updated = await prisma.salaryAdvance.update({ where: { id: advance.id }, data: { status: AdvanceStatus.PENDING_HR } });
+    const hrApproverIds = await resolveApproverUserIds(user.companyId!, AdvanceStatus.PENDING_HR, null);
+    await notifyMany(
+      hrApproverIds,
+      "advance.pending_approval",
+      `Advance request from ${advance.employee.firstName} ${advance.employee.lastName}`,
+      "Approved by manager, awaiting final approval"
+    );
+    return updated;
   }
 
   if (advance.status === AdvanceStatus.PENDING_HR) {
@@ -102,7 +123,9 @@ export async function decide(user: AuthenticatedUser, advanceId: string, decisio
     }
 
     if (decision === "REJECT") {
-      return prisma.salaryAdvance.update({ where: { id: advance.id }, data: { status: AdvanceStatus.REJECTED } });
+      const updated = await prisma.salaryAdvance.update({ where: { id: advance.id }, data: { status: AdvanceStatus.REJECTED } });
+      if (advance.employee.userId) await notify(advance.employee.userId, "advance.decided", "Advance request rejected");
+      return updated;
     }
 
     const installments = generateInstallments(advance.id, advance.amount, advance.installmentsCount, new Date());
@@ -110,6 +133,7 @@ export async function decide(user: AuthenticatedUser, advanceId: string, decisio
       prisma.advanceInstallment.createMany({ data: installments }),
       prisma.salaryAdvance.update({ where: { id: advance.id }, data: { status: AdvanceStatus.APPROVED } }),
     ]);
+    if (advance.employee.userId) await notify(advance.employee.userId, "advance.decided", "Advance request approved");
     return prisma.salaryAdvance.findUniqueOrThrow({ where: { id: advance.id }, include: { installments: true } });
   }
 

@@ -1,7 +1,7 @@
 import { type FormEvent, useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { api } from "../lib/api";
+import { api, downloadFile } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import type { Employee, Payslip, PayrollRun, SalaryComponent, SalaryStructure } from "../lib/types";
 
@@ -329,6 +329,14 @@ export function PayrollPage() {
                             className="rounded bg-green-600 px-2 py-1 text-xs text-white"
                           >
                             Mark paid
+                          </button>
+                        )}
+                        {run.status !== "DRAFT" && (
+                          <button
+                            onClick={() => downloadFile(`/reports/payroll/${run.id}.csv`, `payroll-${run.id}.csv`)}
+                            className="text-xs text-gray-600 underline"
+                          >
+                            CSV
                           </button>
                         )}
                       </div>
