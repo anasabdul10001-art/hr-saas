@@ -307,7 +307,8 @@ model EmployeeSalaryComponent {
   employee          Employee        @relation(fields: [employeeId], references: [id])
   salaryComponentId String
   salaryComponent   SalaryComponent @relation(fields: [salaryComponentId], references: [id])
-  value             Float // fixed minor-unit amount, or percentage value depending on calculationType
+  fixedAmount       Int? // minor units — set when the component's calculationType is FIXED
+  percentage        Float? // e.g. 7.5 for 7.5% of base — set when calculationType is PERCENTAGE_OF_BASE
 
   @@unique([employeeId, salaryComponentId])
 }

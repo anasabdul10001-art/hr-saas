@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 
 type User = {
@@ -30,15 +31,21 @@ function persistSession(user: User, accessToken: string, refreshToken: string) {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(loadStoredUser());
+  const queryClient = useQueryClient();
 
+  // Query keys (e.g. ["payslips", "me"]) are the same regardless of who's logged in, so without
+  // clearing the cache on every account switch, a just-logged-in user can briefly render with
+  // the previous user's cached data until their own fetch resolves.
   async function login(email: string, password: string) {
     const { data } = await api.post("/auth/login", { email, password });
+    queryClient.clear();
     persistSession(data.user, data.accessToken, data.refreshToken);
     setUser(data.user);
   }
 
   async function signup(input: { companyName: string; currency: string; adminEmail: string; adminPassword: string }) {
     const { data } = await api.post("/auth/signup", input);
+    queryClient.clear();
     const signedUpUser = { ...data.user, companyId: data.company.id };
     persistSession(signedUpUser, data.accessToken, data.refreshToken);
     setUser(signedUpUser);
@@ -50,6 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("user");
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
+    queryClient.clear();
     setUser(null);
   }
 

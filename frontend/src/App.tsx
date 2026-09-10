@@ -9,6 +9,7 @@ import { EmployeesPage } from "./pages/EmployeesPage";
 import { DepartmentsPage } from "./pages/DepartmentsPage";
 import { AttendancePage } from "./pages/AttendancePage";
 import { LeavePage } from "./pages/LeavePage";
+import { PayrollPage } from "./pages/PayrollPage";
 
 const queryClient = new QueryClient();
 
@@ -26,6 +27,7 @@ function App() {
               <Route path="/departments" element={<DepartmentsPage />} />
               <Route path="/attendance" element={<AttendancePage />} />
               <Route path="/leave" element={<LeavePage />} />
+              <Route path="/payroll" element={<PayrollPage />} />
             </Route>
             <Route path="*" element={<Navigate to="/signup" replace />} />
           </Routes>

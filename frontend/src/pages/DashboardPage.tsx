@@ -26,6 +26,9 @@ export function DashboardPage() {
           <Link to="/leave" className="text-gray-900 underline">
             Leave
           </Link>
+          <Link to="/payroll" className="text-gray-900 underline">
+            Payroll
+          </Link>
         </div>
         <dl className="mt-4 space-y-2 text-sm">
           <div>

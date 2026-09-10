@@ -58,3 +58,54 @@ export type LeaveRequest = {
   status: LeaveRequestStatus;
   rejectionReason: string | null;
 };
+
+export type SalaryComponentType = "EARNING" | "DEDUCTION";
+export type SalaryCalculationType = "FIXED" | "PERCENTAGE_OF_BASE";
+
+export type SalaryComponent = {
+  id: string;
+  name: string;
+  type: SalaryComponentType;
+  calculationType: SalaryCalculationType;
+};
+
+export type EmployeeSalaryComponent = {
+  id: string;
+  salaryComponentId: string;
+  fixedAmount: number | null;
+  percentage: number | null;
+  salaryComponent: SalaryComponent;
+};
+
+export type SalaryStructure = {
+  baseSalary: number | null;
+  components: EmployeeSalaryComponent[];
+};
+
+export type PayrollRunStatus = "DRAFT" | "PROCESSED" | "PAID";
+
+export type PayrollRun = {
+  id: string;
+  periodStart: string;
+  periodEnd: string;
+  status: PayrollRunStatus;
+  runAt: string | null;
+};
+
+export type PayslipBreakdown = {
+  baseSalary: number;
+  components: Array<{ name: string; type: SalaryComponentType; amount: number }>;
+  unpaidAbsence: { workingDays: number; unpaidDays: number; dailyRate: number; deduction: number };
+};
+
+export type Payslip = {
+  id: string;
+  employeeId: string;
+  employee?: { id: string; firstName: string; lastName: string };
+  payrollRunId: string;
+  payrollRun?: { periodStart: string; periodEnd: string; status: PayrollRunStatus };
+  grossPay: number;
+  totalDeductions: number;
+  netPay: number;
+  breakdown: PayslipBreakdown;
+};
