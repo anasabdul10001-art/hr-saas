@@ -70,3 +70,28 @@ authRouter.post("/logout", async (req, res) => {
   await authService.logout(parsed.data.refreshToken);
   res.status(204).send();
 });
+
+const forgotPasswordSchema = z.object({ email: z.string().email() });
+
+authRouter.post("/forgot-password", async (req, res) => {
+  const parsed = forgotPasswordSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+
+  await authService.requestPasswordReset(parsed.data.email);
+  // Same response whether or not the email exists — see the comment in auth.service.ts.
+  res.json({ message: "If an account exists for that email, password reset instructions have been sent." });
+});
+
+const resetPasswordSchema = z.object({ token: z.string().min(1), newPassword: z.string().min(8) });
+
+authRouter.post("/reset-password", async (req, res) => {
+  const parsed = resetPasswordSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+
+  try {
+    await authService.resetPassword(parsed.data.token, parsed.data.newPassword);
+    res.json({ message: "Password updated. You can now log in." });
+  } catch (err) {
+    res.status(400).json({ error: (err as Error).message });
+  }
+});

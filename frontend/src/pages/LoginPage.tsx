@@ -42,7 +42,12 @@ export function LoginPage() {
           </div>
 
           <div className="space-y-1">
-            <label className="text-sm font-medium text-slate-700">Password</label>
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium text-slate-700">Password</label>
+              <Link to="/forgot-password" className="text-xs font-medium text-brand-600 hover:text-brand-700">
+                Forgot password?
+              </Link>
+            </div>
             <input
               type="password"
               className="input-field"

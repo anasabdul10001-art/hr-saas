@@ -120,3 +120,41 @@ export async function logout(refreshToken: string) {
     data: { revokedAt: new Date() },
   });
 }
+
+// Always succeeds from the caller's point of view, whether or not the email exists — an
+// anonymous, unauthenticated endpoint that revealed "no account with that email" would let
+// anyone enumerate registered emails. The raw token is logged server-side rather than returned
+// in the response (unlike the employee-invite temp password, which an already-authenticated
+// HR/Admin requested for someone else): returning it here would let anyone reset any account's
+// password just by knowing their email. Swap the console.log for a real email send when that's
+// wired up.
+export async function requestPasswordReset(email: string) {
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user || !user.isActive) return;
+
+  const { token, tokenHash } = generateRefreshToken();
+  await prisma.passwordResetToken.create({
+    data: { userId: user.id, tokenHash, expiresAt: new Date(Date.now() + 60 * 60 * 1000) },
+  });
+
+  const resetUrl = `${env.frontendUrl}/reset-password?token=${token}`;
+  console.log(`[DEV] Password reset requested for ${email}. Would be emailed in production. Link: ${resetUrl}`);
+}
+
+export async function resetPassword(token: string, newPassword: string) {
+  const tokenHash = hashRefreshToken(token);
+  const stored = await prisma.passwordResetToken.findUnique({ where: { tokenHash } });
+
+  if (!stored || stored.usedAt || stored.expiresAt < new Date()) {
+    throw new Error("Invalid or expired reset link");
+  }
+
+  const passwordHash = await bcrypt.hash(newPassword, 12);
+
+  await prisma.$transaction([
+    prisma.user.update({ where: { id: stored.userId }, data: { passwordHash } }),
+    prisma.passwordResetToken.update({ where: { id: stored.id }, data: { usedAt: new Date() } }),
+    // Resetting the password ends every existing session, same as a real "sign out everywhere".
+    prisma.refreshToken.updateMany({ where: { userId: stored.userId, revokedAt: null }, data: { revokedAt: new Date() } }),
+  ]);
+}
