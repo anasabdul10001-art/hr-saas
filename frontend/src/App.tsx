@@ -16,6 +16,7 @@ import { PayrollPage } from "./pages/PayrollPage";
 import { AdvancesPage } from "./pages/AdvancesPage";
 import { BillingPage } from "./pages/BillingPage";
 import { SuperAdminDashboardPage } from "./pages/SuperAdminDashboardPage";
+import { SuperAdminLoginPage } from "./pages/SuperAdminLoginPage";
 import { ProfilePage } from "./pages/ProfilePage";
 
 const queryClient = new QueryClient();
@@ -31,6 +32,7 @@ function App() {
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/admin/login" element={<SuperAdminLoginPage />} />
             <Route element={<TenantProtectedRoute />}>
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/employees" element={<EmployeesPage />} />

@@ -1,17 +1,21 @@
+import { type FormEvent, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { LogOut, DollarSign, TrendingUp, Users, AlertTriangle } from "lucide-react";
+import { LogOut, DollarSign, TrendingUp, Users, AlertTriangle, CreditCard, Tag, Plus } from "lucide-react";
 import { api } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import { Logo } from "../components/Logo";
 import { Avatar } from "../components/Avatar";
-import type { AdminCompanyListItem, Plan, RevenueOverview } from "../lib/types";
+import type { AdminCompanyListItem, Plan, PlatformSettings, RevenueOverview } from "../lib/types";
 
 function money(minorUnits: number) {
   return (minorUnits / 100).toFixed(2);
 }
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString();
+}
+function errorMessage(err: unknown, fallback: string) {
+  return (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? fallback;
 }
 
 const statusStyles: Record<string, string> = {
@@ -21,6 +25,257 @@ const statusStyles: Record<string, string> = {
   CANCELED: "bg-rose-50 text-rose-700",
   EXPIRED: "bg-rose-50 text-rose-700",
 };
+
+function PlansSection() {
+  const queryClient = useQueryClient();
+  const plans = useQuery({
+    queryKey: ["plans"],
+    queryFn: async () => (await api.get<Plan[]>("/plans")).data,
+  });
+
+  function invalidatePlans() {
+    queryClient.invalidateQueries({ queryKey: ["plans"] });
+  }
+
+  const [editValues, setEditValues] = useState<Record<string, { price: string; maxEmployees: string }>>({});
+
+  function valuesFor(plan: Plan) {
+    return editValues[plan.id] ?? { price: money(plan.priceMonthly), maxEmployees: String(plan.maxEmployees) };
+  }
+
+  const updatePlan = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<{ priceMonthly: number; maxEmployees: number; isActive: boolean }> }) =>
+      (await api.patch(`/plans/${id}`, data)).data,
+    onSuccess: invalidatePlans,
+    onError: (err: unknown) => alert(errorMessage(err, "Failed to update plan")),
+  });
+
+  const [createForm, setCreateForm] = useState({ name: "", price: "", maxEmployees: "", featuresCsv: "" });
+  const [createError, setCreateError] = useState<string | null>(null);
+
+  const createPlan = useMutation({
+    mutationFn: async () => {
+      const features: Record<string, boolean> = {};
+      createForm.featuresCsv
+        .split(",")
+        .map((f) => f.trim())
+        .filter(Boolean)
+        .forEach((f) => (features[f] = true));
+
+      return (
+        await api.post("/plans", {
+          name: createForm.name,
+          priceMonthly: Math.round(Number(createForm.price) * 100),
+          maxEmployees: Number(createForm.maxEmployees),
+          features,
+        })
+      ).data;
+    },
+    onSuccess: () => {
+      setCreateForm({ name: "", price: "", maxEmployees: "", featuresCsv: "" });
+      setCreateError(null);
+      invalidatePlans();
+    },
+    onError: (err: unknown) => setCreateError(errorMessage(err, "Failed to create plan")),
+  });
+
+  function handleCreateSubmit(e: FormEvent) {
+    e.preventDefault();
+    setCreateError(null);
+    createPlan.mutate();
+  }
+
+  return (
+    <div className="card">
+      <div className="flex items-center gap-2 border-b border-slate-100 p-4">
+        <Tag size={16} className="text-brand-600" />
+        <h2 className="text-sm font-semibold text-slate-900">Plans & pricing</h2>
+      </div>
+
+      <div className="divide-y divide-slate-100">
+        {plans.data?.map((plan) => {
+          const values = valuesFor(plan);
+          return (
+            <div key={plan.id} className="flex flex-wrap items-center gap-3 p-4 text-sm">
+              <span className={`w-28 shrink-0 font-medium ${plan.isActive ? "text-slate-900" : "text-slate-400 line-through"}`}>
+                {plan.name}
+              </span>
+              <label className="flex items-center gap-1 text-xs text-slate-500">
+                $
+                <input
+                  type="number"
+                  step="0.01"
+                  className="w-20 rounded border border-slate-200 px-2 py-1 text-xs"
+                  value={values.price}
+                  onChange={(e) => setEditValues({ ...editValues, [plan.id]: { ...values, price: e.target.value } })}
+                />
+                /mo
+              </label>
+              <label className="flex items-center gap-1 text-xs text-slate-500">
+                max
+                <input
+                  type="number"
+                  className="w-16 rounded border border-slate-200 px-2 py-1 text-xs"
+                  value={values.maxEmployees}
+                  onChange={(e) => setEditValues({ ...editValues, [plan.id]: { ...values, maxEmployees: e.target.value } })}
+                />
+                employees
+              </label>
+              <span className="text-xs text-slate-400">{Object.keys(plan.features).join(", ") || "no features set"}</span>
+              <div className="ml-auto flex items-center gap-2">
+                <button
+                  onClick={() =>
+                    updatePlan.mutate({
+                      id: plan.id,
+                      data: { priceMonthly: Math.round(Number(values.price) * 100), maxEmployees: Number(values.maxEmployees) },
+                    })
+                  }
+                  className="rounded-lg bg-slate-900 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-slate-800"
+                >
+                  Save
+                </button>
+                <button
+                  onClick={() => updatePlan.mutate({ id: plan.id, data: { isActive: !plan.isActive } })}
+                  className={`rounded-lg px-2.5 py-1.5 text-xs font-medium text-white ${plan.isActive ? "bg-rose-600 hover:bg-rose-700" : "bg-emerald-600 hover:bg-emerald-700"}`}
+                >
+                  {plan.isActive ? "Deactivate" : "Activate"}
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <form onSubmit={handleCreateSubmit} className="flex flex-wrap items-end gap-2 border-t border-slate-100 p-4">
+        <label className="text-xs text-slate-600">
+          New plan name
+          <input
+            className="input-field mt-1 w-32"
+            value={createForm.name}
+            onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
+            required
+          />
+        </label>
+        <label className="text-xs text-slate-600">
+          Price/mo ($)
+          <input
+            type="number"
+            step="0.01"
+            className="input-field mt-1 w-24"
+            value={createForm.price}
+            onChange={(e) => setCreateForm({ ...createForm, price: e.target.value })}
+            required
+          />
+        </label>
+        <label className="text-xs text-slate-600">
+          Max employees
+          <input
+            type="number"
+            className="input-field mt-1 w-24"
+            value={createForm.maxEmployees}
+            onChange={(e) => setCreateForm({ ...createForm, maxEmployees: e.target.value })}
+            required
+          />
+        </label>
+        <label className="text-xs text-slate-600">
+          Features (comma-separated)
+          <input
+            className="input-field mt-1 w-48"
+            placeholder="attendance, payroll, advances"
+            value={createForm.featuresCsv}
+            onChange={(e) => setCreateForm({ ...createForm, featuresCsv: e.target.value })}
+          />
+        </label>
+        <button type="submit" disabled={createPlan.isPending} className="btn-primary">
+          <Plus size={14} />
+          Add plan
+        </button>
+        {createError && <p className="w-full text-xs text-rose-600">{createError}</p>}
+      </form>
+    </div>
+  );
+}
+
+function PaymentSettingsSection() {
+  const queryClient = useQueryClient();
+  const settings = useQuery({
+    queryKey: ["settings"],
+    queryFn: async () => (await api.get<PlatformSettings>("/settings")).data,
+  });
+
+  const [form, setForm] = useState({ stripeSecretKey: "", stripeWebhookSecret: "" });
+  const [success, setSuccess] = useState(false);
+
+  const save = useMutation({
+    mutationFn: async () => {
+      const body: Record<string, string> = {};
+      if (form.stripeSecretKey) body.stripeSecretKey = form.stripeSecretKey;
+      if (form.stripeWebhookSecret) body.stripeWebhookSecret = form.stripeWebhookSecret;
+      return (await api.patch<PlatformSettings>("/settings", body)).data;
+    },
+    onSuccess: () => {
+      setForm({ stripeSecretKey: "", stripeWebhookSecret: "" });
+      setSuccess(true);
+      queryClient.invalidateQueries({ queryKey: ["settings"] });
+    },
+    onError: (err: unknown) => alert(errorMessage(err, "Failed to save settings")),
+  });
+
+  function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    setSuccess(false);
+    save.mutate();
+  }
+
+  return (
+    <div className="card p-5">
+      <div className="flex items-center gap-2">
+        <CreditCard size={16} className="text-brand-600" />
+        <h2 className="text-sm font-semibold text-slate-900">Payment settings (Stripe)</h2>
+      </div>
+      <p className="mt-1 text-xs text-slate-500">
+        Live here instead of backend/.env — takes effect immediately, no restart needed.
+      </p>
+
+      <form onSubmit={handleSubmit} className="mt-4 space-y-3">
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-slate-700">
+            Secret key{" "}
+            {settings.data?.stripeSecretKeySet && (
+              <span className="text-slate-400">— currently {settings.data.stripeSecretKeyMasked}</span>
+            )}
+          </label>
+          <input
+            type="password"
+            className="input-field"
+            placeholder="sk_live_… or sk_test_…"
+            value={form.stripeSecretKey}
+            onChange={(e) => setForm({ ...form, stripeSecretKey: e.target.value })}
+          />
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-slate-700">
+            Webhook signing secret{" "}
+            {settings.data?.stripeWebhookSecretSet && (
+              <span className="text-slate-400">— currently {settings.data.stripeWebhookSecretMasked}</span>
+            )}
+          </label>
+          <input
+            type="password"
+            className="input-field"
+            placeholder="whsec_…"
+            value={form.stripeWebhookSecret}
+            onChange={(e) => setForm({ ...form, stripeWebhookSecret: e.target.value })}
+          />
+        </div>
+        {success && <p className="text-xs text-emerald-600">Saved.</p>}
+        <button type="submit" disabled={save.isPending} className="btn-primary">
+          {save.isPending ? "Saving…" : "Save"}
+        </button>
+      </form>
+    </div>
+  );
+}
 
 export function SuperAdminDashboardPage() {
   const { user, logout } = useAuth();
@@ -175,6 +430,9 @@ export function SuperAdminDashboardPage() {
             ))}
           </div>
         </div>
+
+        <PlansSection />
+        <PaymentSettingsSection />
       </main>
     </div>
   );

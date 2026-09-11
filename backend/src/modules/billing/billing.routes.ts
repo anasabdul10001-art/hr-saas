@@ -3,7 +3,7 @@ import { z } from "zod";
 import { UserRole } from "@prisma/client";
 import Stripe from "stripe";
 import { requireAuth, requireCompanyContext, requireRole } from "../../middleware/auth";
-import { env } from "../../config/env";
+import { resolveWebhookSecret } from "../../lib/stripe";
 import * as billingService from "./billing.service";
 
 export const billingRouter = Router();
@@ -49,7 +49,8 @@ export const billingWebhookRouter = Router();
 
 billingWebhookRouter.post("/", async (req, res) => {
   const signature = req.headers["stripe-signature"];
-  if (!signature || !env.stripeWebhookSecret) {
+  const webhookSecret = await resolveWebhookSecret();
+  if (!signature || !webhookSecret) {
     return res.status(400).json({ error: "Missing Stripe signature or webhook secret not configured" });
   }
 
@@ -57,7 +58,7 @@ billingWebhookRouter.post("/", async (req, res) => {
   try {
     // Signature verification is pure local HMAC — it needs the webhook secret, not an API key,
     // so this deliberately doesn't go through getStripe()'s "is Stripe configured" guard.
-    event = Stripe.webhooks.constructEvent(req.body, signature, env.stripeWebhookSecret);
+    event = Stripe.webhooks.constructEvent(req.body, signature, webhookSecret);
   } catch (err) {
     return res.status(400).json({ error: `Webhook signature verification failed: ${(err as Error).message}` });
   }

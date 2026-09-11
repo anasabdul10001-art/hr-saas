@@ -20,6 +20,7 @@ import { notificationRouter } from "./modules/notification/notification.routes";
 import { dashboardRouter } from "./modules/dashboard/dashboard.routes";
 import { reportsRouter } from "./modules/reports/reports.routes";
 import { profileRouter } from "./modules/profile/profile.routes";
+import { settingsRouter } from "./modules/settings/settings.routes";
 
 const app = express();
 
@@ -52,6 +53,7 @@ app.use("/api/notifications", notificationRouter);
 app.use("/api/dashboard", dashboardRouter);
 app.use("/api/reports", reportsRouter);
 app.use("/api/profile", profileRouter);
+app.use("/api/settings", settingsRouter);
 
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err);

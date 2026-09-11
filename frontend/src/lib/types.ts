@@ -131,6 +131,13 @@ export type Plan = {
   isActive: boolean;
 };
 
+export type PlatformSettings = {
+  stripeSecretKeySet: boolean;
+  stripeSecretKeyMasked: string | null;
+  stripeWebhookSecretSet: boolean;
+  stripeWebhookSecretMasked: string | null;
+};
+
 export type SubscriptionStatusValue = "TRIALING" | "ACTIVE" | "PAST_DUE" | "CANCELED" | "EXPIRED";
 
 export type Invoice = {

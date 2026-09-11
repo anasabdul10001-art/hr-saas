@@ -18,7 +18,7 @@ export function TenantProtectedRoute() {
 
 export function SuperAdminProtectedRoute() {
   const { user } = useAuth();
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) return <Navigate to="/admin/login" replace />;
   if (user.role !== "SUPER_ADMIN") return <Navigate to="/dashboard" replace />;
   return <Outlet />;
 }

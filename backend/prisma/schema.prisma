@@ -33,6 +33,15 @@ model SubscriptionPlan {
   subscriptions Subscription[]
 }
 
+// Single-row platform-wide config (Stripe keys today) that the Super Admin manages from the
+// dashboard instead of editing backend/.env by hand. Always read/written at id "singleton".
+model PlatformSettings {
+  id                  String   @id @default("singleton")
+  stripeSecretKey     String?
+  stripeWebhookSecret String?
+  updatedAt           DateTime @updatedAt
+}
+
 model Subscription {
   id                   String             @id @default(cuid())
   companyId            String             @unique

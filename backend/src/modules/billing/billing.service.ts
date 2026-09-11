@@ -18,7 +18,7 @@ async function ensureStripeCustomer(companyId: string): Promise<string> {
   if (subscription.stripeCustomerId) return subscription.stripeCustomerId;
 
   const company = await prisma.company.findUniqueOrThrow({ where: { id: companyId } });
-  const stripe = getStripe();
+  const stripe = await getStripe();
   const customer = await stripe.customers.create({ name: company.name, metadata: { companyId } });
 
   await prisma.subscription.update({ where: { companyId }, data: { stripeCustomerId: customer.id } });
@@ -38,7 +38,7 @@ export async function createCheckoutSession(companyId: string, planId: string) {
   }
 
   const customerId = await ensureStripeCustomer(companyId);
-  const stripe = getStripe();
+  const stripe = await getStripe();
 
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
@@ -66,7 +66,7 @@ export async function createPortalSession(companyId: string) {
   const subscription = await getCompanySubscription(companyId);
   if (!subscription.stripeCustomerId) throw new Error("No Stripe customer on file yet — subscribe to a paid plan first");
 
-  const stripe = getStripe();
+  const stripe = await getStripe();
   const portal = await stripe.billingPortal.sessions.create({
     customer: subscription.stripeCustomerId,
     return_url: `${env.frontendUrl}/billing`,

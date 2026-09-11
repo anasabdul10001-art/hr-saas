@@ -47,10 +47,15 @@ See [`docs/project-brief.md`](docs/project-brief.md) for the complete module-by-
 ## Activating real Stripe billing
 Checkout/portal/webhooks are fully implemented but untested against a real Stripe account (none
 configured in this environment). To activate: create a Stripe account, grab test-mode keys from
-https://dashboard.stripe.com/test/apikeys, set `STRIPE_SECRET_KEY` in `backend/.env`, then either
-use the Stripe CLI (`stripe listen --forward-to localhost:4000/api/billing/webhook`) for a real
-webhook secret, or reuse a locally-generated one for testing signature verification only (see git
-history around the phase-7 commit for how that was done without a real account). Run
-`npm run prisma:seed` once to create the default plans and a Super Admin login
-(`SUPER_ADMIN_EMAIL`/`SUPER_ADMIN_PASSWORD` in `.env`, defaults to `superadmin@local.test` /
-`changeme123` if unset — change this before deploying anywhere real).
+https://dashboard.stripe.com/test/apikeys, then paste the Secret Key and (once you have one) the
+webhook signing secret into **Super Admin dashboard → Payment settings** — takes effect
+immediately, no restart, no editing `.env`. That panel writes to the `PlatformSettings` table,
+which `lib/stripe.ts` checks before falling back to `STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET` in
+`backend/.env` (so `.env` still works too, e.g. for CI). Use the Stripe CLI
+(`stripe listen --forward-to localhost:4000/api/billing/webhook`) to get a real webhook secret, or
+reuse a locally-generated one for testing signature verification only (see git history around the
+phase-7 commit for how that was done without a real account). Run `npm run prisma:seed` once to
+create the default plans and a Super Admin login (`SUPER_ADMIN_EMAIL`/`SUPER_ADMIN_PASSWORD` in
+`.env`, defaults to `superadmin@local.test` / `changeme123` if unset — change this before deploying
+anywhere real). Super Admin signs in at `/admin/login` (a separate page from the tenant `/login`,
+not linked from anywhere in the public UI).
