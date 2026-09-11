@@ -2,15 +2,25 @@ import { Router } from "express";
 import { z } from "zod";
 import { UserRole } from "@prisma/client";
 import { requireAuth, requireRole } from "../../middleware/auth";
+import { verifyAccessToken } from "../../lib/jwt";
 import * as planService from "./plan.service";
 
 export const planRouter = Router();
 
-planRouter.use(requireAuth);
-
-// Any authenticated user (e.g. a Company Admin picking a plan) can see the active catalog.
+// Public: powers the marketing site's pricing section as well as the in-app plan picker, so it
+// deliberately doesn't require auth. Only the active catalog is exposed to anonymous callers —
+// a logged-in Super Admin sees inactive plans too (for the admin dashboard's plan management).
 planRouter.get("/", async (req, res) => {
-  const plans = req.user!.role === UserRole.SUPER_ADMIN ? await planService.listAllPlans() : await planService.listActivePlans();
+  const authHeader = req.headers.authorization;
+  let role: UserRole | undefined;
+  if (authHeader?.startsWith("Bearer ")) {
+    try {
+      role = verifyAccessToken(authHeader.slice("Bearer ".length)).role as UserRole;
+    } catch {
+      // Invalid/expired token on a public endpoint just falls back to the public view.
+    }
+  }
+  const plans = role === UserRole.SUPER_ADMIN ? await planService.listAllPlans() : await planService.listActivePlans();
   res.json(plans);
 });
 
@@ -22,7 +32,7 @@ const createSchema = z.object({
   features: z.record(z.boolean()),
 });
 
-planRouter.post("/", requireRole(UserRole.SUPER_ADMIN), async (req, res) => {
+planRouter.post("/", requireAuth, requireRole(UserRole.SUPER_ADMIN), async (req, res) => {
   const parsed = createSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
 
@@ -38,7 +48,7 @@ const updateSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
-planRouter.patch("/:id", requireRole(UserRole.SUPER_ADMIN), async (req, res) => {
+planRouter.patch("/:id", requireAuth, requireRole(UserRole.SUPER_ADMIN), async (req, res) => {
   const parsed = updateSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
 

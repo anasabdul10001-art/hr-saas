@@ -33,7 +33,9 @@ export function SignupPage() {
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-brand-50/60 to-slate-50 px-4 py-10">
       <div className="w-full max-w-sm">
         <div className="mb-6 flex justify-center">
-          <Logo />
+          <Link to="/">
+            <Logo />
+          </Link>
         </div>
         <form onSubmit={handleSubmit} className="card space-y-4 p-6">
           <h1 className="text-lg font-semibold text-slate-900">Create your company account</h1>

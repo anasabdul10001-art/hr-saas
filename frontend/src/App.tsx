@@ -2,6 +2,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "./context/AuthContext";
 import { TenantProtectedRoute, SuperAdminProtectedRoute } from "./components/ProtectedRoute";
+import { HomePage } from "./pages/HomePage";
 import { LoginPage } from "./pages/LoginPage";
 import { SignupPage } from "./pages/SignupPage";
 import { DashboardPage } from "./pages/DashboardPage";
@@ -22,6 +23,7 @@ function App() {
       <AuthProvider>
         <BrowserRouter>
           <Routes>
+            <Route path="/" element={<HomePage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
             <Route element={<TenantProtectedRoute />}>
@@ -37,7 +39,7 @@ function App() {
             <Route element={<SuperAdminProtectedRoute />}>
               <Route path="/admin" element={<SuperAdminDashboardPage />} />
             </Route>
-            <Route path="*" element={<Navigate to="/signup" replace />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>
       </AuthProvider>
