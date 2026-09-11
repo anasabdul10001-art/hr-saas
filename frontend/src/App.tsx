@@ -1,7 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "./context/AuthContext";
-import { TenantProtectedRoute, SuperAdminProtectedRoute } from "./components/ProtectedRoute";
+import { ProtectedRoute, TenantProtectedRoute, SuperAdminProtectedRoute } from "./components/ProtectedRoute";
 import { HomePage } from "./pages/HomePage";
 import { LoginPage } from "./pages/LoginPage";
 import { SignupPage } from "./pages/SignupPage";
@@ -16,6 +16,7 @@ import { PayrollPage } from "./pages/PayrollPage";
 import { AdvancesPage } from "./pages/AdvancesPage";
 import { BillingPage } from "./pages/BillingPage";
 import { SuperAdminDashboardPage } from "./pages/SuperAdminDashboardPage";
+import { ProfilePage } from "./pages/ProfilePage";
 
 const queryClient = new QueryClient();
 
@@ -42,6 +43,9 @@ function App() {
             </Route>
             <Route element={<SuperAdminProtectedRoute />}>
               <Route path="/admin" element={<SuperAdminDashboardPage />} />
+            </Route>
+            <Route element={<ProtectedRoute />}>
+              <Route path="/profile" element={<ProfilePage />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

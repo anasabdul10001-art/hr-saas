@@ -7,6 +7,8 @@ type User = {
   email: string;
   role: string;
   companyId?: string | null;
+  name?: string | null;
+  avatarUrl?: string | null;
 };
 
 type AuthContextValue = {
@@ -14,6 +16,7 @@ type AuthContextValue = {
   login: (email: string, password: string) => Promise<User>;
   signup: (input: { companyName: string; currency: string; adminEmail: string; adminPassword: string }) => Promise<User>;
   logout: () => Promise<void>;
+  updateUser: (patch: Partial<User>) => void;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -63,7 +66,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }
 
-  return <AuthContext.Provider value={{ user, login, signup, logout }}>{children}</AuthContext.Provider>;
+  // Lets the profile page reflect an edit (name, avatar) immediately without a full re-login —
+  // the PATCH/upload response already has the fresh fields, no need to re-fetch.
+  function updateUser(patch: Partial<User>) {
+    setUser((current) => {
+      if (!current) return current;
+      const updated = { ...current, ...patch };
+      localStorage.setItem("user", JSON.stringify(updated));
+      return updated;
+    });
+  }
+
+  return <AuthContext.Provider value={{ user, login, signup, logout, updateUser }}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth(): AuthContextValue {

@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import path from "path";
 import { env } from "./config/env";
 import { authRouter } from "./modules/auth/auth.routes";
 import { employeeRouter } from "./modules/employees/employee.routes";
@@ -18,6 +19,7 @@ import { adminRouter } from "./modules/admin/admin.routes";
 import { notificationRouter } from "./modules/notification/notification.routes";
 import { dashboardRouter } from "./modules/dashboard/dashboard.routes";
 import { reportsRouter } from "./modules/reports/reports.routes";
+import { profileRouter } from "./modules/profile/profile.routes";
 
 const app = express();
 
@@ -29,6 +31,7 @@ app.use(cors({ origin: env.corsOrigin, credentials: true }));
 app.use("/api/billing/webhook", express.raw({ type: "application/json" }), billingWebhookRouter);
 
 app.use(express.json());
+app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 app.get("/health", (_req, res) => res.json({ status: "ok" }));
 app.use("/api/auth", authRouter);
@@ -48,6 +51,7 @@ app.use("/api/admin", adminRouter);
 app.use("/api/notifications", notificationRouter);
 app.use("/api/dashboard", dashboardRouter);
 app.use("/api/reports", reportsRouter);
+app.use("/api/profile", profileRouter);
 
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err);

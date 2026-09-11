@@ -1,8 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import { LogOut, DollarSign, TrendingUp, Users, AlertTriangle } from "lucide-react";
 import { api } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import { Logo } from "../components/Logo";
+import { Avatar } from "../components/Avatar";
 import type { AdminCompanyListItem, Plan, RevenueOverview } from "../lib/types";
 
 function money(minorUnits: number) {
@@ -64,7 +66,10 @@ export function SuperAdminDashboardPage() {
             <span className="rounded-full bg-white/10 px-2.5 py-1 text-xs font-medium text-white">Super Admin</span>
           </div>
           <div className="flex items-center gap-4">
-            <span className="text-xs text-slate-400">{user?.email}</span>
+            <Link to="/profile" className="flex items-center gap-2 rounded-lg px-2 py-1 text-xs text-slate-300 hover:bg-white/5 hover:text-white">
+              <Avatar name={user?.name} email={user?.email} avatarUrl={user?.avatarUrl} size="sm" />
+              {user?.name || user?.email}
+            </Link>
             <button onClick={() => logout()} className="flex items-center gap-1.5 text-sm text-slate-300 hover:text-white">
               <LogOut size={15} />
               Log out

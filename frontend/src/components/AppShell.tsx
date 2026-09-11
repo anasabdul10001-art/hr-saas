@@ -14,6 +14,7 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { Logo } from "./Logo";
 import { NotificationBell } from "./NotificationBell";
+import { Avatar } from "./Avatar";
 
 const NAV_ITEMS = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -65,10 +66,20 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
           )}
         </nav>
         <div className="border-t border-slate-200 p-3">
-          <div className="mb-2 px-2">
-            <p className="truncate text-xs font-medium text-slate-900">{user?.email}</p>
-            <p className="text-xs text-slate-500">{user?.role}</p>
-          </div>
+          <NavLink
+            to="/profile"
+            className={({ isActive }) =>
+              `mb-1 flex items-center gap-2.5 rounded-lg px-2 py-2 transition-colors ${
+                isActive ? "bg-brand-50" : "hover:bg-slate-50"
+              }`
+            }
+          >
+            <Avatar name={user?.name} email={user?.email} avatarUrl={user?.avatarUrl} size="sm" />
+            <div className="min-w-0">
+              <p className="truncate text-xs font-medium text-slate-900">{user?.name || user?.email}</p>
+              <p className="text-xs text-slate-500">{user?.role}</p>
+            </div>
+          </NavLink>
           <button
             onClick={() => logout()}
             className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"

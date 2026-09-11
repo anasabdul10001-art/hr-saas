@@ -4,6 +4,10 @@ export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
 });
 
+// The backend serves uploaded files (avatars) from its own origin, not under /api — strip the
+// /api suffix so callers can build a full URL for an avatarUrl like "/uploads/avatars/x.png".
+export const backendOrigin: string = import.meta.env.VITE_API_URL.replace(/\/api\/?$/, "");
+
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("accessToken");
   if (token) config.headers.Authorization = `Bearer ${token}`;

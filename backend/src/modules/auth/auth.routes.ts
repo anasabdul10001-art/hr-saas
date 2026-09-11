@@ -19,7 +19,7 @@ authRouter.post("/signup", async (req, res) => {
     const { company, user, accessToken, refreshToken } = await authService.signupCompany(parsed.data);
     res.status(201).json({
       company: { id: company.id, name: company.name, slug: company.slug },
-      user: { id: user.id, email: user.email, role: user.role },
+      user: { id: user.id, email: user.email, role: user.role, name: user.name, avatarUrl: user.avatarUrl },
       accessToken,
       refreshToken,
     });
@@ -40,7 +40,7 @@ authRouter.post("/login", async (req, res) => {
   try {
     const { user, accessToken, refreshToken } = await authService.login(parsed.data.email, parsed.data.password);
     res.json({
-      user: { id: user.id, email: user.email, role: user.role, companyId: user.companyId },
+      user: { id: user.id, email: user.email, role: user.role, companyId: user.companyId, name: user.name, avatarUrl: user.avatarUrl },
       accessToken,
       refreshToken,
     });
@@ -57,7 +57,11 @@ authRouter.post("/refresh", async (req, res) => {
 
   try {
     const { user, accessToken, refreshToken } = await authService.refresh(parsed.data.refreshToken);
-    res.json({ user: { id: user.id, email: user.email, role: user.role, companyId: user.companyId }, accessToken, refreshToken });
+    res.json({
+      user: { id: user.id, email: user.email, role: user.role, companyId: user.companyId, name: user.name, avatarUrl: user.avatarUrl },
+      accessToken,
+      refreshToken,
+    });
   } catch (err) {
     res.status(401).json({ error: (err as Error).message });
   }

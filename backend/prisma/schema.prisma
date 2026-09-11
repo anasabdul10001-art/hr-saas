@@ -106,6 +106,8 @@ model User {
   company      Company?  @relation(fields: [companyId], references: [id])
   email        String    @unique
   passwordHash String
+  name         String?
+  avatarUrl    String?
   role         UserRole
   isActive     Boolean   @default(true)
   lastLoginAt  DateTime?
