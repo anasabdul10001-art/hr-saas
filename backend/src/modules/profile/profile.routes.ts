@@ -5,6 +5,7 @@ import path from "path";
 import fs from "fs";
 import { requireAuth } from "../../middleware/auth";
 import * as profileService from "./profile.service";
+import { isCloudinaryConfigured, uploadImage } from "../../lib/cloudinary";
 
 export const profileRouter = Router();
 
@@ -46,8 +47,10 @@ profileRouter.post("/password", async (req, res) => {
 const uploadsDir = path.join(__dirname, "../../../uploads/avatars");
 fs.mkdirSync(uploadsDir, { recursive: true });
 
+// Cloudinary configured -> upload there (survives redeploys, works on Render's free tier which
+// has no persistent disk). Not configured -> local disk, same as before (fine for local dev).
 const upload = multer({
-  storage: multer.diskStorage({
+  storage: isCloudinaryConfigured() ? multer.memoryStorage() : multer.diskStorage({
     destination: uploadsDir,
     filename: (req, file, cb) => {
       const ext = path.extname(file.originalname).toLowerCase();
@@ -69,8 +72,15 @@ profileRouter.post("/avatar", (req, res) => {
     if (err) return res.status(400).json({ error: err instanceof Error ? err.message : "Upload failed" });
     if (!req.file) return res.status(400).json({ error: "No file uploaded" });
 
-    const avatarUrl = `/uploads/avatars/${req.file.filename}`;
-    const user = await profileService.updateAvatar(req.user!.id, avatarUrl);
-    res.json(user);
+    try {
+      const avatarUrl = isCloudinaryConfigured()
+        ? await uploadImage(req.file.buffer, `avatars/${req.user!.id}`)
+        : `/uploads/avatars/${req.file.filename}`;
+
+      const user = await profileService.updateAvatar(req.user!.id, avatarUrl);
+      res.json(user);
+    } catch (uploadErr) {
+      res.status(502).json({ error: uploadErr instanceof Error ? uploadErr.message : "Upload failed" });
+    }
   });
 });

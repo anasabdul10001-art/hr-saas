@@ -16,4 +16,10 @@ export const env = {
   corsOrigin: process.env.CORS_ORIGIN ?? "http://localhost:5173",
   frontendUrl: process.env.FRONTEND_URL ?? "http://localhost:5173",
   stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
+  // Optional - avatar uploads fall back to local disk storage (fine for local dev, but Render's
+  // free-tier filesystem is wiped on every redeploy) when these aren't all set. See
+  // src/lib/cloudinary.ts.
+  cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME,
+  cloudinaryApiKey: process.env.CLOUDINARY_API_KEY,
+  cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET,
 };

@@ -22,9 +22,12 @@ export function Avatar({
   size?: keyof typeof SIZES;
 }) {
   if (avatarUrl) {
+    // Cloudinary-hosted avatars are already-absolute URLs; only the local-disk fallback
+    // (/uploads/avatars/...) needs the backend origin prepended.
+    const src = /^https?:\/\//.test(avatarUrl) ? avatarUrl : `${backendOrigin}${avatarUrl}`;
     return (
       <img
-        src={`${backendOrigin}${avatarUrl}`}
+        src={src}
         alt={name ?? email ?? "Avatar"}
         className={`${SIZES[size]} shrink-0 rounded-full object-cover`}
       />

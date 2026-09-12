@@ -59,3 +59,16 @@ create the default plans and a Super Admin login (`SUPER_ADMIN_EMAIL`/`SUPER_ADM
 `.env`, defaults to `superadmin@local.test` / `changeme123` if unset — change this before deploying
 anywhere real). Super Admin signs in at `/admin/login` (a separate page from the tenant `/login`,
 not linked from anywhere in the public UI).
+
+## Deployment
+Deployed via the `render.yaml` Blueprint at the repo root: a Node web service (`nawa-backend`,
+runs `prisma migrate deploy` on every boot), a managed Postgres (`nawa-db`), and a static site
+build of the Vite frontend (`nawa-frontend`). In Render: New + -> Blueprint -> point at this repo ->
+fill in the `sync: false` secrets it prompts for (Super Admin credentials, Stripe keys, Cloudinary
+credentials) -> Apply. After the first deploy, run `npm run prisma:seed` once from the
+`nawa-backend` service's Shell tab.
+
+Profile avatar uploads go to Cloudinary (`backend/src/lib/cloudinary.ts`) when
+`CLOUDINARY_CLOUD_NAME`/`CLOUDINARY_API_KEY`/`CLOUDINARY_API_SECRET` are set, and to local disk
+(`backend/uploads/avatars`) otherwise. Render's free-tier filesystem is wiped on every redeploy, so
+set the Cloudinary vars there (free account at cloudinary.com) - local dev works fine without them.
