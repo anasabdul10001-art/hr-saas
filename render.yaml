@@ -41,7 +41,8 @@ services:
       - key: CLOUDINARY_API_SECRET
         sync: false
 
-  - type: static
+  - type: web
+    runtime: static
     name: nawa-frontend
     rootDir: frontend
     buildCommand: npm install && npm run build
