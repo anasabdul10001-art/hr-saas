@@ -1,9 +1,3 @@
-databases:
-  - name: nawa-db
-    plan: starter
-    databaseName: hrsaas
-    user: hrsaas
-
 services:
   - type: web
     name: nawa-backend
@@ -14,10 +8,12 @@ services:
     startCommand: npx prisma migrate deploy && npm run start
     healthCheckPath: /health
     envVars:
+      # Postgres is external (Supabase free tier) rather than Render's own managed Postgres -
+      # Render's free Postgres plan is capped at one per account, and this account's slot is
+      # already used by another project. Paste the Supabase connection string (Session Pooler,
+      # port 6543 - see Supabase Project Settings -> Database) here in the Render dashboard.
       - key: DATABASE_URL
-        fromDatabase:
-          name: nawa-db
-          property: connectionString
+        sync: false
       - key: JWT_ACCESS_SECRET
         generateValue: true
       - key: JWT_REFRESH_SECRET
