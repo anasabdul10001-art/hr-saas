@@ -1,6 +1,6 @@
 databases:
   - name: nawa-db
-    plan: free
+    plan: starter
     databaseName: hrsaas
     user: hrsaas
 
