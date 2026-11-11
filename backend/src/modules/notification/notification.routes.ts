@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { requireAuth } from "../../middleware/auth";
 import * as notificationService from "./notification.service";
+import { respondError } from "../../lib/respondError";
 
 export const notificationRouter = Router();
 
@@ -19,7 +20,7 @@ notificationRouter.post("/:id/read", async (req, res) => {
     const notification = await notificationService.markRead(req.user!.id, req.params.id);
     res.json(notification);
   } catch (err) {
-    res.status(404).json({ error: (err as Error).message });
+    respondError(res, 404, err);
   }
 });
 

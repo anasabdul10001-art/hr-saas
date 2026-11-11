@@ -3,6 +3,7 @@ import { z } from "zod";
 import { UserRole } from "@prisma/client";
 import { blockSuspendedCompany, requireAuth, requireCompanyContext, requireRole } from "../../middleware/auth";
 import * as employeeSalaryService from "./employeeSalary.service";
+import { respondError } from "../../lib/respondError";
 
 export const employeeSalaryRouter = Router();
 
@@ -13,7 +14,7 @@ employeeSalaryRouter.get("/:employeeId", async (req, res) => {
     const structure = await employeeSalaryService.getSalaryStructure(req.user!, req.params.employeeId);
     res.json(structure);
   } catch (err) {
-    res.status(404).json({ error: (err as Error).message });
+    respondError(res, 404, err);
   }
 });
 
@@ -30,7 +31,7 @@ employeeSalaryRouter.put(
       const employee = await employeeSalaryService.setBaseSalary(req.user!.companyId!, req.params.employeeId, parsed.data.baseSalary);
       res.json(employee);
     } catch (err) {
-      res.status(400).json({ error: (err as Error).message });
+      respondError(res, 400, err);
     }
   }
 );
@@ -55,7 +56,7 @@ employeeSalaryRouter.put(
       });
       res.json(component);
     } catch (err) {
-      res.status(400).json({ error: (err as Error).message });
+      respondError(res, 400, err);
     }
   }
 );
@@ -68,7 +69,7 @@ employeeSalaryRouter.delete(
       await employeeSalaryService.removeComponent(req.user!.companyId!, req.params.employeeId, req.params.salaryComponentId);
       res.status(204).send();
     } catch (err) {
-      res.status(400).json({ error: (err as Error).message });
+      respondError(res, 400, err);
     }
   }
 );

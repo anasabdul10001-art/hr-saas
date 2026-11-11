@@ -4,6 +4,7 @@ import { UserRole } from "@prisma/client";
 import { requireAuth, requireRole } from "../../middleware/auth";
 import { verifyAccessToken } from "../../lib/jwt";
 import * as planService from "./plan.service";
+import { respondError } from "../../lib/respondError";
 
 export const planRouter = Router();
 
@@ -56,6 +57,6 @@ planRouter.patch("/:id", requireAuth, requireRole(UserRole.SUPER_ADMIN), async (
     const plan = await planService.updatePlan(req.params.id, parsed.data);
     res.json(plan);
   } catch (err) {
-    res.status(404).json({ error: (err as Error).message });
+    respondError(res, 404, err);
   }
 });

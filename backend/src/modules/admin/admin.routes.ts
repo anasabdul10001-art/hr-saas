@@ -3,6 +3,7 @@ import { z } from "zod";
 import { SubscriptionStatus, UserRole } from "@prisma/client";
 import { requireAuth, requireRole } from "../../middleware/auth";
 import * as adminService from "./admin.service";
+import { respondError } from "../../lib/respondError";
 
 export const adminRouter = Router();
 
@@ -18,7 +19,7 @@ adminRouter.get("/companies/:id", async (req, res) => {
     const company = await adminService.getCompanyDetail(req.params.id);
     res.json(company);
   } catch (err) {
-    res.status(404).json({ error: (err as Error).message });
+    respondError(res, 404, err);
   }
 });
 
@@ -36,7 +37,7 @@ adminRouter.patch("/companies/:id/subscription", async (req, res) => {
     const subscription = await adminService.updateCompanySubscription(req.params.id, parsed.data);
     res.json(subscription);
   } catch (err) {
-    res.status(400).json({ error: (err as Error).message });
+    respondError(res, 400, err);
   }
 });
 
@@ -50,7 +51,7 @@ adminRouter.patch("/companies/:id/suspension", async (req, res) => {
     const company = await adminService.setCompanySuspended(req.params.id, parsed.data.isSuspended);
     res.json(company);
   } catch (err) {
-    res.status(404).json({ error: (err as Error).message });
+    respondError(res, 404, err);
   }
 });
 

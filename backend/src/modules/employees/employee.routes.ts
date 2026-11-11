@@ -4,6 +4,7 @@ import { UserRole } from "@prisma/client";
 import { blockSuspendedCompany, requireAuth, requireCompanyContext, requireRole } from "../../middleware/auth";
 import * as employeeService from "./employee.service";
 import { findOwnEmployee } from "./employee.scope";
+import { respondError } from "../../lib/respondError";
 
 export const employeeRouter = Router();
 
@@ -33,7 +34,7 @@ employeeRouter.get("/:id", async (req, res) => {
     const employee = await employeeService.getEmployee(req.user!, req.params.id);
     res.json(employee);
   } catch (err) {
-    res.status(404).json({ error: (err as Error).message });
+    respondError(res, 404, err);
   }
 });
 
@@ -62,7 +63,7 @@ employeeRouter.post("/", requireRole(UserRole.COMPANY_ADMIN, UserRole.HR), async
     // would be delivered via an invite email instead of the API response.
     res.status(201).json({ employee, tempPassword });
   } catch (err) {
-    res.status(400).json({ error: (err as Error).message });
+    respondError(res, 400, err);
   }
 });
 
@@ -83,6 +84,6 @@ employeeRouter.patch("/:id", requireRole(UserRole.COMPANY_ADMIN, UserRole.HR), a
     const employee = await employeeService.updateEmployee(req.user!.companyId!, req.params.id, parsed.data, req.user!.id);
     res.json(employee);
   } catch (err) {
-    res.status(400).json({ error: (err as Error).message });
+    respondError(res, 400, err);
   }
 });

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { LeaveRequestStatus, UserRole } from "@prisma/client";
 import { blockSuspendedCompany, requireAuth, requireCompanyContext, requireRole } from "../../middleware/auth";
 import * as leaveRequestService from "./leaveRequest.service";
+import { respondError } from "../../lib/respondError";
 
 export const leaveRequestRouter = Router();
 
@@ -23,7 +24,7 @@ leaveRequestRouter.post("/", async (req, res) => {
     const request = await leaveRequestService.createLeaveRequest(req.user!, parsed.data);
     res.status(201).json(request);
   } catch (err) {
-    res.status(400).json({ error: (err as Error).message });
+    respondError(res, 400, err);
   }
 });
 
@@ -32,7 +33,7 @@ leaveRequestRouter.get("/me", async (req, res) => {
     const requests = await leaveRequestService.listMyLeaveRequests(req.user!);
     res.json(requests);
   } catch (err) {
-    res.status(400).json({ error: (err as Error).message });
+    respondError(res, 400, err);
   }
 });
 
@@ -66,7 +67,7 @@ leaveRequestRouter.post(
       const request = await leaveRequestService.decide(req.user!, req.params.id, parsed.data.decision, parsed.data.reason);
       res.json(request);
     } catch (err) {
-      res.status(400).json({ error: (err as Error).message });
+      respondError(res, 400, err);
     }
   }
 );
@@ -76,6 +77,6 @@ leaveRequestRouter.post("/:id/cancel", async (req, res) => {
     const request = await leaveRequestService.cancelLeaveRequest(req.user!, req.params.id);
     res.json(request);
   } catch (err) {
-    res.status(400).json({ error: (err as Error).message });
+    respondError(res, 400, err);
   }
 });

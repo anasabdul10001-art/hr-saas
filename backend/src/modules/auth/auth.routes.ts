@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import * as authService from "./auth.service";
+import { respondError } from "../../lib/respondError";
 
 export const authRouter = Router();
 
@@ -24,7 +25,7 @@ authRouter.post("/signup", async (req, res) => {
       refreshToken,
     });
   } catch (err) {
-    res.status(409).json({ error: (err as Error).message });
+    respondError(res, 409, err);
   }
 });
 
@@ -45,7 +46,7 @@ authRouter.post("/login", async (req, res) => {
       refreshToken,
     });
   } catch (err) {
-    res.status(401).json({ error: (err as Error).message });
+    respondError(res, 401, err);
   }
 });
 
@@ -63,7 +64,7 @@ authRouter.post("/refresh", async (req, res) => {
       refreshToken,
     });
   } catch (err) {
-    res.status(401).json({ error: (err as Error).message });
+    respondError(res, 401, err);
   }
 });
 
@@ -96,6 +97,6 @@ authRouter.post("/reset-password", async (req, res) => {
     await authService.resetPassword(parsed.data.token, parsed.data.newPassword);
     res.json({ message: "Password updated. You can now log in." });
   } catch (err) {
-    res.status(400).json({ error: (err as Error).message });
+    respondError(res, 400, err);
   }
 });

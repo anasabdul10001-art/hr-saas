@@ -5,6 +5,7 @@ import { blockSuspendedCompany, requireAuth, requireCompanyContext, requireRole 
 import * as leaveBalanceService from "./leaveBalance.service";
 import { findOwnEmployee, scopedEmployeeWhere } from "../employees/employee.scope";
 import { prisma } from "../../lib/prisma";
+import { respondError } from "../../lib/respondError";
 
 export const leaveBalanceRouter = Router();
 
@@ -58,6 +59,6 @@ leaveBalanceRouter.post("/adjust", requireRole(UserRole.COMPANY_ADMIN, UserRole.
     const balance = await leaveBalanceService.adjustBalance(req.user!.companyId!, parsed.data);
     res.json(balance);
   } catch (err) {
-    res.status(400).json({ error: (err as Error).message });
+    respondError(res, 400, err);
   }
 });

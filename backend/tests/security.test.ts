@@ -1,4 +1,5 @@
 import { describe, it, expect, afterAll, vi } from "vitest";
+import { Prisma } from "@prisma/client";
 import request from "supertest";
 import { app } from "../src/app";
 import { prisma } from "../src/lib/prisma";
@@ -54,6 +55,22 @@ describe("the server keeps answering when something fails", () => {
     const res = await request(app).post("/api/auth/logout").send({ refreshToken: "anything" }).timeout(5000);
     spy.mockRestore();
     expect(res.status).toBe(500);
+  });
+
+  it("a database failure is not described to the client (no SQL, file paths or host names in the answer)", async () => {
+    const dbError = new Prisma.PrismaClientInitializationError("Invalid `prisma.user.findUnique()` invocation in /srv/app/auth.service.ts: Can't reach database server at db.internal:5432", "5.22.0");
+    const spy = vi.spyOn(prisma.user, "findUnique").mockRejectedValueOnce(dbError);
+    const res = await request(app).post("/api/auth/signup").send({ companyName: "Leak Test Co", adminEmail: uniqueEmail("leak"), adminPassword: password });
+    spy.mockRestore();
+    expect(res.status).toBe(500);
+    expect(JSON.stringify(res.body)).not.toMatch(/prisma|auth\.service|db\.internal|5432/i);
+  });
+
+  it("our own business errors still reach the client with their message and status", async () => {
+    const co = await newCompany("sec9");
+    const dup = await request(app).post("/api/auth/signup").send({ companyName: "Dup Co", adminEmail: co.email, adminPassword: password });
+    expect(dup.status).toBe(409);
+    expect(dup.body.error).toBe("Email already in use");
   });
 
   it("sends the standard security headers", async () => {
