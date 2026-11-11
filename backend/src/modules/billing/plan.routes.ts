@@ -29,7 +29,7 @@ const createSchema = z.object({
   priceMonthly: z.number().int().min(0),
   currency: z.string().length(3).optional(),
   maxEmployees: z.number().int().min(1),
-  features: z.record(z.boolean()),
+  features: z.record(z.string(), z.boolean()),
 });
 
 planRouter.post("/", requireAuth, requireRole(UserRole.SUPER_ADMIN), async (req, res) => {
@@ -44,7 +44,7 @@ const updateSchema = z.object({
   name: z.string().min(1).optional(),
   priceMonthly: z.number().int().min(0).optional(),
   maxEmployees: z.number().int().min(1).optional(),
-  features: z.record(z.boolean()).optional(),
+  features: z.record(z.string(), z.boolean()).optional(),
   isActive: z.boolean().optional(),
 });
 

@@ -34,6 +34,9 @@ async function seedSuperAdmin() {
     return;
   }
 
+  if (process.env.NODE_ENV === "production" && (!process.env.SUPER_ADMIN_EMAIL || !process.env.SUPER_ADMIN_PASSWORD)) {
+    throw new Error("Refusing to create a Super Admin with the default password in production: set SUPER_ADMIN_EMAIL and SUPER_ADMIN_PASSWORD first.");
+  }
   const passwordHash = await bcrypt.hash(password, 12);
   await prisma.user.create({ data: { email, passwordHash, role: UserRole.SUPER_ADMIN, companyId: null } });
 

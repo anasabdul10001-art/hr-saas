@@ -36,8 +36,10 @@ See [`docs/project-brief.md`](docs/project-brief.md) for the complete module-by-
 - MENA-local payment gateway (PayTabs/HyperPay/Moyasar) behind Stripe as a second provider.
 - Real device/biometric attendance integration (the `AttendanceSource.DEVICE` enum value and a
   `source` field already exist for this — just needs an ingestion endpoint).
-- Broader automated test coverage — everything so far has been verified via manual curl/browser
-  runs each phase, not an automated test suite.
+- Broader automated test coverage — payroll processing and auth/tenant isolation/RBAC now have
+  tests (`cd backend && npm test`, needs a Postgres via `DATABASE_URL`); the other modules
+  (attendance, leave, advances, billing) still have none.
+- Real password-reset emails: the reset link is only logged on the server for now.
 
 ## Ground rules
 - No floating-point money — integer minor units (cents/fils) or `Decimal`.
