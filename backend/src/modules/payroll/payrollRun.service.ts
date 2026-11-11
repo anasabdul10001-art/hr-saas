@@ -1,4 +1,4 @@
-import { AdvanceStatus, EmploymentStatus, LeaveRequestStatus, PayrollRunStatus, SalaryComponentType } from "@prisma/client";
+import { AdvanceInstallment, AdvanceStatus, EmploymentStatus, LeaveRequestStatus, PayrollRunStatus, Prisma, SalaryComponentType } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
 import { notify } from "../notification/notification.service";
 
@@ -52,6 +52,20 @@ export async function getPayrollRun(companyId: string, runId: string) {
   return run;
 }
 
+type PayslipDraft = {
+  employeeId: string;
+  userId: string | null;
+  grossPay: number;
+  totalDeductions: number;
+  netPay: number;
+  breakdown: Prisma.InputJsonValue;
+  installmentIds: string[];
+  advanceIds: string[];
+};
+
+// Works out every payslip first (reads only), then writes them all in ONE transaction that also claims the
+// run (DRAFT -> PROCESSED). So a failure half-way leaves nothing behind, and two requests at the same moment
+// cannot both process the run: the second finds it already claimed and is refused.
 export async function processPayrollRun(companyId: string, runId: string, actingUserId: string) {
   const run = await prisma.payrollRun.findFirst({ where: { id: runId, companyId } });
   if (!run) throw new Error("Payroll run not found");
@@ -66,7 +80,7 @@ export async function processPayrollRun(companyId: string, runId: string, acting
     include: { salaryStructure: { include: { salaryComponent: true } } },
   });
 
-  const payslips = [];
+  const drafts: PayslipDraft[] = [];
 
   for (const employee of employees) {
     const baseSalary = employee.baseSalary ?? 0;
@@ -94,6 +108,8 @@ export async function processPayrollRun(companyId: string, runId: string, acting
       return approvedLeave.some((l) => l.leaveType.isPaid && day >= l.startDate && day <= l.endDate);
     }
 
+    // A working day with no check-in and no paid leave is unpaid. That includes the days before the hire date,
+    // which is what pro-rates the first month of someone who joined mid-period.
     let unpaidDays = 0;
     for (const day of workingDays) {
       if (attendanceDays.has(dateKey(day))) continue;
@@ -119,86 +135,115 @@ export async function processPayrollRun(companyId: string, runId: string, acting
       else componentDeductions += amount;
     }
 
-    // Advance installments that have come due by this pay period, for advances already through
-    // final approval — deducted automatically, same as unpaid-absence days.
-    const dueInstallments = await prisma.advanceInstallment.findMany({
+    const grossPay = baseSalary + componentEarnings;
+
+    // Advance installments that have come due by this pay period, for advances already through final approval,
+    // oldest first. Pay never goes below zero: an installment is taken only while what is left of the pay can
+    // cover it; one that does not fit stays unpaid and is taken in a later run.
+    const dueInstallments: AdvanceInstallment[] = await prisma.advanceInstallment.findMany({
       where: {
         isPaid: false,
         dueDate: { lte: endOfDayUTC(run.periodEnd) },
         advance: { employeeId: employee.id, status: AdvanceStatus.APPROVED },
       },
+      orderBy: [{ dueDate: "asc" }, { id: "asc" }],
     });
-    const advanceDeduction = dueInstallments.reduce((sum, i) => sum + i.amount, 0);
+    let room = Math.max(0, grossPay - componentDeductions - unpaidDeduction);
+    const taken: AdvanceInstallment[] = [];
+    const postponed: AdvanceInstallment[] = [];
+    for (const installment of dueInstallments) {
+      if (installment.amount <= room) {
+        taken.push(installment);
+        room -= installment.amount;
+      } else postponed.push(installment);
+    }
+    const advanceDeduction = taken.reduce((sum, i) => sum + i.amount, 0);
 
-    const grossPay = baseSalary + componentEarnings;
-    const totalDeductions = componentDeductions + unpaidDeduction + advanceDeduction;
-    const netPay = grossPay - totalDeductions;
+    // Fixed deductions and unpaid days can already exceed the pay: the payslip then shows zero net, with the rest as a shortfall.
+    const rawDeductions = componentDeductions + unpaidDeduction + advanceDeduction;
+    const netPay = Math.max(0, grossPay - rawDeductions);
+    const totalDeductions = grossPay - netPay;
 
-    const payslip = await prisma.$transaction(async (tx) => {
-      const created = await tx.payslip.create({
-        data: {
-          payrollRunId: run.id,
-          employeeId: employee.id,
-          grossPay,
-          totalDeductions,
-          netPay,
-          breakdown: {
-            baseSalary,
-            components: breakdownComponents,
-            unpaidAbsence: { workingDays: workingDays.length, unpaidDays, dailyRate: Math.round(dailyRate), deduction: unpaidDeduction },
-            advanceInstallments: dueInstallments.map((i) => ({ id: i.id, advanceId: i.advanceId, amount: i.amount })),
-          },
-        },
+    drafts.push({
+      employeeId: employee.id,
+      userId: employee.userId,
+      grossPay,
+      totalDeductions,
+      netPay,
+      breakdown: {
+        baseSalary,
+        components: breakdownComponents,
+        unpaidAbsence: { workingDays: workingDays.length, unpaidDays, dailyRate: Math.round(dailyRate), deduction: unpaidDeduction },
+        advanceInstallments: taken.map((i) => ({ id: i.id, advanceId: i.advanceId, amount: i.amount })),
+        postponedInstallments: postponed.map((i) => ({ id: i.id, advanceId: i.advanceId, amount: i.amount })),
+        shortfall: Math.max(0, rawDeductions - grossPay),
+      },
+      installmentIds: taken.map((i) => i.id),
+      advanceIds: [...new Set(taken.map((i) => i.advanceId))],
+    });
+  }
+
+  await prisma.$transaction(
+    async (tx) => {
+      const claimed = await tx.payrollRun.updateMany({
+        where: { id: run.id, companyId, status: PayrollRunStatus.DRAFT },
+        data: { status: PayrollRunStatus.PROCESSED, runAt: new Date() },
       });
+      if (claimed.count !== 1) throw new Error("Only a draft payroll run can be processed");
 
-      if (dueInstallments.length > 0) {
-        await tx.advanceInstallment.updateMany({
-          where: { id: { in: dueInstallments.map((i) => i.id) } },
-          data: { isPaid: true, paidInPayrollRunId: run.id },
+      for (const draft of drafts) {
+        await tx.payslip.create({
+          data: {
+            payrollRunId: run.id,
+            employeeId: draft.employeeId,
+            grossPay: draft.grossPay,
+            totalDeductions: draft.totalDeductions,
+            netPay: draft.netPay,
+            breakdown: draft.breakdown,
+          },
         });
 
-        const advanceIds = [...new Set(dueInstallments.map((i) => i.advanceId))];
-        for (const advanceId of advanceIds) {
-          const remaining = await tx.advanceInstallment.count({ where: { advanceId, isPaid: false } });
-          if (remaining === 0) {
-            await tx.salaryAdvance.update({ where: { id: advanceId }, data: { status: AdvanceStatus.REPAID } });
+        if (draft.installmentIds.length > 0) {
+          const marked = await tx.advanceInstallment.updateMany({
+            where: { id: { in: draft.installmentIds }, isPaid: false },
+            data: { isPaid: true, paidInPayrollRunId: run.id },
+          });
+          if (marked.count !== draft.installmentIds.length) throw new Error("An advance installment was already deducted by another payroll run");
+
+          for (const advanceId of draft.advanceIds) {
+            const remaining = await tx.advanceInstallment.count({ where: { advanceId, isPaid: false } });
+            if (remaining === 0) await tx.salaryAdvance.update({ where: { id: advanceId }, data: { status: AdvanceStatus.REPAID } });
           }
         }
       }
 
-      return created;
-    });
-    payslips.push(payslip);
+      await tx.auditLog.create({
+        data: {
+          companyId,
+          userId: actingUserId,
+          action: "payroll.run",
+          entityType: "PayrollRun",
+          entityId: run.id,
+          metadata: {
+            periodStart: run.periodStart,
+            periodEnd: run.periodEnd,
+            employeeCount: drafts.length,
+            totalNetPay: drafts.reduce((sum, d) => sum + d.netPay, 0),
+          },
+        },
+      });
+    },
+    { timeout: 120000, maxWait: 30000 }
+  );
 
-    if (employee.userId) {
-      await notify(
-        employee.userId,
-        "payroll.payslip_ready",
-        "Your payslip is ready",
-        `Net pay: ${(netPay / 100).toFixed(2)}`
-      );
+  // Notifications go out only once everything is saved; a failed notification must not undo a finished run.
+  for (const draft of drafts) {
+    if (draft.userId) {
+      await notify(draft.userId, "payroll.payslip_ready", "Your payslip is ready", `Net pay: ${(draft.netPay / 100).toFixed(2)}`).catch((err) => console.error("payslip notification failed", err));
     }
   }
 
-  await prisma.payrollRun.update({ where: { id: run.id }, data: { status: PayrollRunStatus.PROCESSED, runAt: new Date() } });
-
-  await prisma.auditLog.create({
-    data: {
-      companyId,
-      userId: actingUserId,
-      action: "payroll.run",
-      entityType: "PayrollRun",
-      entityId: run.id,
-      metadata: {
-        periodStart: run.periodStart,
-        periodEnd: run.periodEnd,
-        employeeCount: payslips.length,
-        totalNetPay: payslips.reduce((sum, p) => sum + p.netPay, 0),
-      },
-    },
-  });
-
-  return payslips;
+  return prisma.payslip.findMany({ where: { payrollRunId: run.id } });
 }
 
 export async function markPayrollRunPaid(companyId: string, runId: string) {
