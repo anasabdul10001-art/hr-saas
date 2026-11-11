@@ -3,6 +3,7 @@ import { z } from "zod";
 import { UserRole } from "@prisma/client";
 import { blockSuspendedCompany, requireAuth, requireCompanyContext, requireRole } from "../../middleware/auth";
 import * as departmentService from "./department.service";
+import { respondError } from "../../lib/respondError";
 
 export const departmentRouter = Router();
 
@@ -23,7 +24,7 @@ departmentRouter.post("/", requireRole(UserRole.COMPANY_ADMIN, UserRole.HR), asy
     const department = await departmentService.createDepartment(req.user!.companyId!, parsed.data);
     res.status(201).json(department);
   } catch (err) {
-    res.status(400).json({ error: (err as Error).message });
+    respondError(res, 400, err);
   }
 });
 
@@ -37,7 +38,7 @@ departmentRouter.patch("/:id", requireRole(UserRole.COMPANY_ADMIN, UserRole.HR),
     const department = await departmentService.updateDepartment(req.user!.companyId!, req.params.id, parsed.data);
     res.json(department);
   } catch (err) {
-    res.status(400).json({ error: (err as Error).message });
+    respondError(res, 400, err);
   }
 });
 
@@ -46,6 +47,6 @@ departmentRouter.delete("/:id", requireRole(UserRole.COMPANY_ADMIN, UserRole.HR)
     await departmentService.deleteDepartment(req.user!.companyId!, req.params.id);
     res.status(204).send();
   } catch (err) {
-    res.status(400).json({ error: (err as Error).message });
+    respondError(res, 400, err);
   }
 });

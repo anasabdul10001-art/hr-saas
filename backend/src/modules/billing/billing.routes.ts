@@ -5,6 +5,7 @@ import Stripe from "stripe";
 import { requireAuth, requireCompanyContext, requireRole } from "../../middleware/auth";
 import { resolveWebhookSecret } from "../../lib/stripe";
 import * as billingService from "./billing.service";
+import { respondError } from "../../lib/respondError";
 
 export const billingRouter = Router();
 
@@ -15,7 +16,7 @@ billingRouter.get("/subscription", requireRole(UserRole.COMPANY_ADMIN, UserRole.
     const subscription = await billingService.getCompanySubscription(req.user!.companyId!);
     res.json(subscription);
   } catch (err) {
-    res.status(404).json({ error: (err as Error).message });
+    respondError(res, 404, err);
   }
 });
 
@@ -29,7 +30,7 @@ billingRouter.post("/checkout", requireRole(UserRole.COMPANY_ADMIN), async (req,
     const result = await billingService.createCheckoutSession(req.user!.companyId!, parsed.data.planId);
     res.json(result);
   } catch (err) {
-    res.status(400).json({ error: (err as Error).message });
+    respondError(res, 400, err);
   }
 });
 
@@ -38,7 +39,7 @@ billingRouter.post("/portal", requireRole(UserRole.COMPANY_ADMIN), async (req, r
     const url = await billingService.createPortalSession(req.user!.companyId!);
     res.json({ url });
   } catch (err) {
-    res.status(400).json({ error: (err as Error).message });
+    respondError(res, 400, err);
   }
 });
 

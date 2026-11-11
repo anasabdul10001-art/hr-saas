@@ -3,6 +3,7 @@ import { z } from "zod";
 import { UserRole } from "@prisma/client";
 import { blockSuspendedCompany, requireAuth, requireCompanyContext, requireRole } from "../../middleware/auth";
 import * as reportsService from "./reports.service";
+import { respondError } from "../../lib/respondError";
 
 export const reportsRouter = Router();
 
@@ -34,7 +35,7 @@ reportsRouter.get(
       res.setHeader("Content-Disposition", `attachment; filename="payroll-${req.params.runId}.csv"`);
       res.send(csv);
     } catch (err) {
-      res.status(404).json({ error: (err as Error).message });
+      respondError(res, 404, err);
     }
   }
 );

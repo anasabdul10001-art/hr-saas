@@ -3,6 +3,7 @@ import { z } from "zod";
 import { UserRole } from "@prisma/client";
 import { blockSuspendedCompany, requireAuth, requireCompanyContext, requireRole } from "../../middleware/auth";
 import * as leaveTypeService from "./leaveType.service";
+import { respondError } from "../../lib/respondError";
 
 export const leaveTypeRouter = Router();
 
@@ -41,6 +42,6 @@ leaveTypeRouter.patch("/:id", requireRole(UserRole.COMPANY_ADMIN, UserRole.HR), 
     const leaveType = await leaveTypeService.updateLeaveType(req.user!.companyId!, req.params.id, parsed.data);
     res.json(leaveType);
   } catch (err) {
-    res.status(404).json({ error: (err as Error).message });
+    respondError(res, 404, err);
   }
 });

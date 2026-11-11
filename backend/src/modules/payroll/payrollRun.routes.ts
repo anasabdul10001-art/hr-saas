@@ -4,6 +4,7 @@ import { UserRole } from "@prisma/client";
 import { blockSuspendedCompany, requireAuth, requireCompanyContext, requireRole } from "../../middleware/auth";
 import * as payrollRunService from "./payrollRun.service";
 import { findOwnEmployee } from "../employees/employee.scope";
+import { respondError } from "../../lib/respondError";
 
 export const payrollRunRouter = Router();
 
@@ -34,7 +35,7 @@ payrollRunRouter.post("/", async (req, res) => {
     const run = await payrollRunService.createPayrollRun(req.user!.companyId!, parsed.data);
     res.status(201).json(run);
   } catch (err) {
-    res.status(400).json({ error: (err as Error).message });
+    respondError(res, 400, err);
   }
 });
 
@@ -43,7 +44,7 @@ payrollRunRouter.get("/:id", async (req, res) => {
     const run = await payrollRunService.getPayrollRun(req.user!.companyId!, req.params.id);
     res.json(run);
   } catch (err) {
-    res.status(404).json({ error: (err as Error).message });
+    respondError(res, 404, err);
   }
 });
 
@@ -52,7 +53,7 @@ payrollRunRouter.post("/:id/process", async (req, res) => {
     const payslips = await payrollRunService.processPayrollRun(req.user!.companyId!, req.params.id, req.user!.id);
     res.json(payslips);
   } catch (err) {
-    res.status(400).json({ error: (err as Error).message });
+    respondError(res, 400, err);
   }
 });
 
@@ -61,6 +62,6 @@ payrollRunRouter.post("/:id/mark-paid", async (req, res) => {
     const run = await payrollRunService.markPayrollRunPaid(req.user!.companyId!, req.params.id);
     res.json(run);
   } catch (err) {
-    res.status(400).json({ error: (err as Error).message });
+    respondError(res, 400, err);
   }
 });

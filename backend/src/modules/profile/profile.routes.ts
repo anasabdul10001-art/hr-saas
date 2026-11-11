@@ -6,6 +6,7 @@ import fs from "fs";
 import { requireAuth } from "../../middleware/auth";
 import * as profileService from "./profile.service";
 import { isCloudinaryConfigured, uploadImage } from "../../lib/cloudinary";
+import { respondError } from "../../lib/respondError";
 
 export const profileRouter = Router();
 
@@ -26,7 +27,7 @@ profileRouter.patch("/", async (req, res) => {
     const user = await profileService.updateProfile(req.user!.id, parsed.data);
     res.json(user);
   } catch (err) {
-    res.status(400).json({ error: (err as Error).message });
+    respondError(res, 400, err);
   }
 });
 
@@ -40,7 +41,7 @@ profileRouter.post("/password", async (req, res) => {
     await profileService.changePassword(req.user!.id, parsed.data.currentPassword, parsed.data.newPassword);
     res.json({ message: "Password updated" });
   } catch (err) {
-    res.status(400).json({ error: (err as Error).message });
+    respondError(res, 400, err);
   }
 });
 

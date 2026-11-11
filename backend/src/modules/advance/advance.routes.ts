@@ -3,6 +3,7 @@ import { z } from "zod";
 import { AdvanceStatus, UserRole } from "@prisma/client";
 import { blockSuspendedCompany, requireAuth, requireCompanyContext, requireRole } from "../../middleware/auth";
 import * as advanceService from "./advance.service";
+import { respondError } from "../../lib/respondError";
 
 export const advanceRouter = Router();
 
@@ -22,7 +23,7 @@ advanceRouter.post("/", async (req, res) => {
     const advance = await advanceService.createAdvanceRequest(req.user!, parsed.data);
     res.status(201).json(advance);
   } catch (err) {
-    res.status(400).json({ error: (err as Error).message });
+    respondError(res, 400, err);
   }
 });
 
@@ -31,7 +32,7 @@ advanceRouter.get("/me", async (req, res) => {
     const advances = await advanceService.listMyAdvances(req.user!);
     res.json(advances);
   } catch (err) {
-    res.status(400).json({ error: (err as Error).message });
+    respondError(res, 400, err);
   }
 });
 
@@ -58,7 +59,7 @@ advanceRouter.post(
       const advance = await advanceService.decide(req.user!, req.params.id, parsed.data.decision);
       res.json(advance);
     } catch (err) {
-      res.status(400).json({ error: (err as Error).message });
+      respondError(res, 400, err);
     }
   }
 );

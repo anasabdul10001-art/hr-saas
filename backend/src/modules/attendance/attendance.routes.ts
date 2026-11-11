@@ -3,6 +3,7 @@ import { z } from "zod";
 import { UserRole } from "@prisma/client";
 import { blockSuspendedCompany, requireAuth, requireCompanyContext, requireRole } from "../../middleware/auth";
 import * as attendanceService from "./attendance.service";
+import { respondError } from "../../lib/respondError";
 
 export const attendanceRouter = Router();
 
@@ -13,7 +14,7 @@ attendanceRouter.post("/check-in", async (req, res) => {
     const record = await attendanceService.checkIn(req.user!);
     res.status(201).json(record);
   } catch (err) {
-    res.status(400).json({ error: (err as Error).message });
+    respondError(res, 400, err);
   }
 });
 
@@ -22,7 +23,7 @@ attendanceRouter.post("/check-out", async (req, res) => {
     const record = await attendanceService.checkOut(req.user!);
     res.json(record);
   } catch (err) {
-    res.status(400).json({ error: (err as Error).message });
+    respondError(res, 400, err);
   }
 });
 
@@ -36,7 +37,7 @@ attendanceRouter.get("/me", async (req, res) => {
     const records = await attendanceService.listMyAttendance(req.user!, parsed.data);
     res.json(records);
   } catch (err) {
-    res.status(400).json({ error: (err as Error).message });
+    respondError(res, 400, err);
   }
 });
 
@@ -69,7 +70,7 @@ attendanceRouter.post("/manual", requireRole(UserRole.COMPANY_ADMIN, UserRole.HR
     const record = await attendanceService.createManualRecord(req.user!.companyId!, req.user!, parsed.data);
     res.status(201).json(record);
   } catch (err) {
-    res.status(400).json({ error: (err as Error).message });
+    respondError(res, 400, err);
   }
 });
 
@@ -87,6 +88,6 @@ attendanceRouter.patch("/:id", requireRole(UserRole.COMPANY_ADMIN, UserRole.HR),
     const record = await attendanceService.updateAttendanceRecord(req.user!.companyId!, req.user!, req.params.id, parsed.data);
     res.json(record);
   } catch (err) {
-    res.status(400).json({ error: (err as Error).message });
+    respondError(res, 400, err);
   }
 });
