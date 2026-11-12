@@ -4,6 +4,8 @@ import { Download, PlayCircle, CheckCircle2 } from "lucide-react";
 import { api, downloadFile } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import { AppShell } from "../components/AppShell";
+import { AccountingSyncBadge } from "../components/AccountingSyncBadge";
+import { apiErrorMessage, useAccountingSync } from "../lib/accountingLink";
 import type { Employee, Payslip, PayrollRun, SalaryComponent, SalaryStructure } from "../lib/types";
 
 function money(minorUnits: number) {
@@ -132,9 +134,31 @@ export function PayrollPage() {
     },
   });
 
+  // a linked company's paid runs are sent to its accounting: show whether each one arrived
+  const accounting = useAccountingSync(canManage);
+  const refreshAccounting = () => {
+    queryClient.invalidateQueries({ queryKey: ["accountingSync"] });
+    queryClient.invalidateQueries({ queryKey: ["accountingLink"] });
+  };
+
   const markPaid = useMutation({
     mutationFn: async (id: string) => (await api.post(`/payroll-runs/${id}/mark-paid`)).data,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["payrollRuns"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["payrollRuns"] });
+      // the message to accounting is queued a moment after the payment, so look for it twice
+      refreshAccounting();
+      setTimeout(refreshAccounting, 1500);
+    },
+  });
+
+  const revertPaid = useMutation({
+    mutationFn: async (id: string) => (await api.post(`/payroll-runs/${id}/revert-paid`)).data,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["payrollRuns"] });
+      refreshAccounting();
+      setTimeout(refreshAccounting, 1500);
+    },
+    onError: (err) => alert(apiErrorMessage(err, "Could not take the payment back")),
   });
 
   return (
@@ -302,6 +326,7 @@ export function PayrollPage() {
                       </button>
                       <div className="flex items-center gap-2">
                         <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${runStatusStyles[run.status]}`}>{run.status}</span>
+                        {accounting.linked && <AccountingSyncBadge runId={run.id} runStatus={run.status} job={accounting.jobs.get(run.id)} canRetry={canManage} />}
                         {run.status === "DRAFT" && (
                           <button
                             onClick={() => processRun.mutate(run.id)}
@@ -318,6 +343,17 @@ export function PayrollPage() {
                           >
                             <CheckCircle2 size={14} />
                             Mark paid
+                          </button>
+                        )}
+                        {run.status === "PAID" && user?.role === "COMPANY_ADMIN" && (
+                          <button
+                            onClick={() => {
+                              if (window.confirm(`Take this payment back? The run returns to Processed.${accounting.linked ? " Its cost is also withdrawn from the accounting." : ""}`)) revertPaid.mutate(run.id);
+                            }}
+                            disabled={revertPaid.isPending}
+                            className="text-xs font-medium text-rose-600 hover:text-rose-700 disabled:opacity-50"
+                          >
+                            Revert payment
                           </button>
                         )}
                         {run.status !== "DRAFT" && (

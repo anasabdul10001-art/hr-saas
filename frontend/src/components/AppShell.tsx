@@ -9,6 +9,7 @@ import {
   Wallet,
   HandCoins,
   CreditCard,
+  Link2,
   LogOut,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
@@ -29,6 +30,7 @@ const NAV_ITEMS = [
 export function AppShell({ title, children }: { title: string; children: ReactNode }) {
   const { user, logout } = useAuth();
   const canSeeBilling = user?.role === "COMPANY_ADMIN" || user?.role === "HR";
+  const canLinkAccounting = user?.role === "COMPANY_ADMIN";
 
   return (
     <div className="flex min-h-screen bg-slate-50">
@@ -62,6 +64,19 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
             >
               <CreditCard size={18} strokeWidth={2} />
               Billing
+            </NavLink>
+          )}
+          {canLinkAccounting && (
+            <NavLink
+              to="/accounting-link"
+              className={({ isActive }) =>
+                `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                  isActive ? "bg-brand-50 text-brand-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                }`
+              }
+            >
+              <Link2 size={18} strokeWidth={2} />
+              Accounting link
             </NavLink>
           )}
         </nav>

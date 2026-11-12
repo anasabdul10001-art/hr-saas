@@ -226,3 +226,24 @@ export type Payslip = {
   netPay: number;
   breakdown: PayslipBreakdown;
 };
+
+// ---- link to the owner's accounting in Dalilacom ----
+export type AccountingLinkInfo = {
+  configured: boolean; // false when this server has no Dalilacom address / encryption key
+  status: "NONE" | "ACTIVE" | "REVOKED"; // REVOKED = cancelled by the owner on the Dalilacom side
+  connectedAt: string | null;
+  revokedAt: string | null;
+  pending: number;
+  failed: number;
+};
+
+export type AccountingSyncJob = {
+  payrollRunId: string;
+  desiredState: "PAID" | "REVERTED";
+  status: "PENDING" | "SYNCED" | "FAILED";
+  attempts: number;
+  lastError: string | null;
+  nextAttemptAt: string;
+  syncedAt: string | null;
+  updatedAt: string;
+};

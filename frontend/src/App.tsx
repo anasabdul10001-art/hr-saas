@@ -18,6 +18,7 @@ import { BillingPage } from "./pages/BillingPage";
 import { SuperAdminDashboardPage } from "./pages/SuperAdminDashboardPage";
 import { SuperAdminLoginPage } from "./pages/SuperAdminLoginPage";
 import { ProfilePage } from "./pages/ProfilePage";
+import { AccountingLinkPage } from "./pages/AccountingLinkPage";
 
 const queryClient = new QueryClient();
 
@@ -42,6 +43,7 @@ function App() {
               <Route path="/payroll" element={<PayrollPage />} />
               <Route path="/advances" element={<AdvancesPage />} />
               <Route path="/billing" element={<BillingPage />} />
+              <Route path="/accounting-link" element={<AccountingLinkPage />} />
             </Route>
             <Route element={<SuperAdminProtectedRoute />}>
               <Route path="/admin" element={<SuperAdminDashboardPage />} />
