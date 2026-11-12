@@ -36,6 +36,12 @@ services:
         sync: false
       - key: CLOUDINARY_API_SECRET
         sync: false
+      # Link to the owner's bookkeeping in Dalilacom. Paste the Dalilacom server address (no trailing slash).
+      - key: DALILACOM_API_URL
+        sync: false
+      # Encrypts the link's signing secret. Generated once by Render; do not change it afterwards (links would have to be made again).
+      - key: ACCOUNTING_LINK_ENCRYPTION_KEY
+        generateValue: true
 
   - type: web
     runtime: static

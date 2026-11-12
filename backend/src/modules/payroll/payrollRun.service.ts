@@ -1,6 +1,7 @@
-import { AdvanceInstallment, AdvanceStatus, EmploymentStatus, LeaveRequestStatus, PayrollRunStatus, Prisma, SalaryComponentType } from "@prisma/client";
+import { AccountingSyncState, AdvanceInstallment, AdvanceStatus, EmploymentStatus, LeaveRequestStatus, PayrollRunStatus, Prisma, SalaryComponentType } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
 import { notify } from "../notification/notification.service";
+import { enqueueRunState } from "../accounting/accountingSync.service";
 
 const DAY_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 
@@ -250,7 +251,22 @@ export async function markPayrollRunPaid(companyId: string, runId: string) {
   const run = await prisma.payrollRun.findFirst({ where: { id: runId, companyId } });
   if (!run) throw new Error("Payroll run not found");
   if (run.status !== PayrollRunStatus.PROCESSED) throw new Error("Only a processed payroll run can be marked paid");
-  return prisma.payrollRun.update({ where: { id: run.id }, data: { status: PayrollRunStatus.PAID } });
+  const paid = await prisma.payrollRun.update({ where: { id: run.id }, data: { status: PayrollRunStatus.PAID } });
+  // a linked company's payroll cost is sent to its bookkeeping; a failure here never undoes the payment (the owner can send it again)
+  await enqueueRunState(companyId, run.id, AccountingSyncState.PAID).catch((err) => console.error("could not queue the accounting sync", err));
+  return paid;
+}
+
+/** Takes a payment back (PAID -> PROCESSED), e.g. when "paid" was pressed by mistake. The cost sent to accounting is withdrawn too. */
+export async function revertPayrollRunPaid(companyId: string, runId: string, actingUserId: string) {
+  const run = await prisma.payrollRun.findFirst({ where: { id: runId, companyId } });
+  if (!run) throw new Error("Payroll run not found");
+  // taken only while it is still paid at this very moment, so two requests cannot both revert it
+  const claimed = await prisma.payrollRun.updateMany({ where: { id: run.id, companyId, status: PayrollRunStatus.PAID }, data: { status: PayrollRunStatus.PROCESSED } });
+  if (claimed.count !== 1) throw new Error("Only a paid payroll run can be reverted");
+  await prisma.auditLog.create({ data: { companyId, userId: actingUserId, action: "payroll.revert_paid", entityType: "PayrollRun", entityId: run.id } });
+  await enqueueRunState(companyId, run.id, AccountingSyncState.REVERTED).catch((err) => console.error("could not queue the accounting sync", err));
+  return prisma.payrollRun.findUniqueOrThrow({ where: { id: run.id } });
 }
 
 export async function listMyPayslips(employeeId: string) {

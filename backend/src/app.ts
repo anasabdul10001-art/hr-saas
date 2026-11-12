@@ -24,6 +24,7 @@ import { dashboardRouter } from "./modules/dashboard/dashboard.routes";
 import { reportsRouter } from "./modules/reports/reports.routes";
 import { profileRouter } from "./modules/profile/profile.routes";
 import { settingsRouter } from "./modules/settings/settings.routes";
+import { accountingLinkRouter } from "./modules/accounting/accountingLink.routes";
 
 const app = express();
 
@@ -70,6 +71,7 @@ app.use("/api/dashboard", dashboardRouter);
 app.use("/api/reports", reportsRouter);
 app.use("/api/profile", profileRouter);
 app.use("/api/settings", settingsRouter);
+app.use("/api/accounting-link", accountingLinkRouter);
 
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err);

@@ -98,6 +98,7 @@ model Company {
   leaveRequests       LeaveRequest[]
   salaryAdvances      SalaryAdvance[]
   payrollRuns         PayrollRun[]
+  accountingLink      AccountingLink?
   auditLogs           AuditLog[]
 }
 
@@ -450,4 +451,64 @@ model Notification {
   createdAt DateTime  @default(now())
 
   @@index([userId, readAt])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Link to the owner's bookkeeping in Dalilacom. Only payroll totals ever go out; the signing secret is kept
+// encrypted. One link per company.
+// ─────────────────────────────────────────────────────────────
+
+enum AccountingLinkStatus {
+  ACTIVE
+  REVOKED // cancelled by the owner on the Dalilacom side
+}
+
+model AccountingLink {
+  id                String               @id @default(cuid())
+  companyId         String               @unique
+  company           Company              @relation(fields: [companyId], references: [id])
+  remoteLinkId      String // the link's id on the Dalilacom side
+  secretEnc         String? // signing secret (AES-256-GCM); cleared when the link is revoked
+  status            AccountingLinkStatus @default(ACTIVE)
+  connectedAt       DateTime             @default(now())
+  revokedAt         DateTime?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+
+  jobs AccountingSyncJob[]
+}
+
+enum AccountingSyncState {
+  PAID
+  REVERTED
+}
+
+enum AccountingSyncStatus {
+  PENDING // waiting to be sent (or to be sent again)
+  SYNCED
+  FAILED // gave up after repeated tries; can be retried by hand
+}
+
+// What Dalilacom must be told about one payroll run. There is one row per run: it always holds the latest state
+// wanted and a revision that only grows, so a late or repeated message can never undo a newer one.
+model AccountingSyncJob {
+  id            String               @id @default(cuid())
+  companyId     String
+  linkId        String
+  link          AccountingLink       @relation(fields: [linkId], references: [id], onDelete: Cascade)
+  payrollRunId  String
+  desiredState  AccountingSyncState
+  revision      Int
+  status        AccountingSyncStatus @default(PENDING)
+  attempts      Int                  @default(0)
+  nextAttemptAt DateTime             @default(now())
+  lockedUntil   DateTime?
+  lastError     String?
+  syncedAt      DateTime?
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  @@unique([linkId, payrollRunId])
+  @@index([status, nextAttemptAt])
+  @@index([companyId])
 }

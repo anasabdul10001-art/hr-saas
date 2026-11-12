@@ -57,6 +57,16 @@ payrollRunRouter.post("/:id/process", async (req, res) => {
   }
 });
 
+// taking a payment back changes the books too, so only the company admin may do it
+payrollRunRouter.post("/:id/revert-paid", requireRole(UserRole.COMPANY_ADMIN), async (req, res) => {
+  try {
+    const run = await payrollRunService.revertPayrollRunPaid(req.user!.companyId!, req.params.id, req.user!.id);
+    res.json(run);
+  } catch (err) {
+    respondError(res, 400, err);
+  }
+});
+
 payrollRunRouter.post("/:id/mark-paid", async (req, res) => {
   try {
     const run = await payrollRunService.markPayrollRunPaid(req.user!.companyId!, req.params.id);
